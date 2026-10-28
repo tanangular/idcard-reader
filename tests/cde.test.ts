@@ -90,6 +90,20 @@ describe("parseCde", () => {
     expect(card.nameEn).toBeNull();
   });
 
+  test("rejects non-ASCII bytes in an ASCII field", () => {
+    try {
+      parseCde(
+        readerFor(
+          makeCardBuffer({ fields: { nameEn: Uint8Array.from([0x4d, 0x72, 0x2e, 0xe9]) } }),
+        ),
+      );
+      throw new Error("expected a throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(CdeParseError);
+      expect((error as CdeParseError).field).toBe("nameEn");
+    }
+  });
+
   test("trims NUL and space padding", () => {
     const padded = new Uint8Array(CDE.nameTh.length);
     padded.set(tis620("นาย#สมชาย#ใจดี#รักไทย#"));

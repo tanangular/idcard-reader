@@ -7,6 +7,7 @@ import {
   createApp,
   createHub,
   DEFAULT_ALLOWED_ORIGINS,
+  defaultAllowedOrigins,
   isOriginAllowed,
   safeJoin,
   type AppOptions,
@@ -60,6 +61,27 @@ describe("isOriginAllowed", () => {
 
   test("rejects the literal null origin sent by sandboxed pages", () => {
     expect(isOriginAllowed("null", DEFAULT_ALLOWED_ORIGINS)).toBe(false);
+  });
+});
+
+describe("defaultAllowedOrigins", () => {
+  test("covers the configured port and the Vite dev port", () => {
+    const origins = defaultAllowedOrigins(4000);
+
+    expect(origins).toContain("http://127.0.0.1:4000");
+    expect(origins).toContain("http://localhost:4000");
+    expect(origins).toContain("http://127.0.0.1:5173");
+    expect(origins).not.toContain("http://127.0.0.1:3000");
+  });
+
+  test("covers a non-default host without duplicates", () => {
+    const origins = defaultAllowedOrigins(4000, "localhost");
+    expect(origins.filter((origin) => origin === "http://localhost:4000")).toHaveLength(1);
+  });
+
+  test("does not repeat an origin when the port is the Vite port", () => {
+    const origins = defaultAllowedOrigins(5173);
+    expect(new Set(origins).size).toBe(origins.length);
   });
 });
 
@@ -247,6 +269,26 @@ describe("Bun.serve app", () => {
     client.close();
   });
 
+  test("sends the current error to a client that connects late", async () => {
+    const started = await startWith();
+    started.state.phase = "error";
+    started.state.error = appError("PARSE_FAILED");
+
+    const client = new TestClient(`${started.base.replace("http", "ws")}/ws`);
+    await client.open();
+
+    expect(await client.next()).toEqual({
+      type: "reader.state",
+      state: "error",
+      readers: ["Fake Reader"],
+    });
+    expect(await client.next()).toEqual({
+      type: "card.error",
+      error: appError("PARSE_FAILED"),
+    });
+    client.close();
+  });
+
   test("answers readers.list with the echoed id", async () => {
     const { base } = await startWith();
     const client = new TestClient(`${base.replace("http", "ws")}/ws`);
@@ -311,7 +353,8 @@ describe("Bun.serve app", () => {
     });
     const client = new TestClient(`${base.replace("http", "ws")}/ws`);
     await client.open();
-    await client.next();
+    await client.next(); // reader.state
+    await client.next(); // card.error from the open snapshot
 
     client.send({ id: "c2", type: "card.read" });
 

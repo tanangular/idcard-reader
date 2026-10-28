@@ -62,6 +62,18 @@ describe("hashCitizenId", () => {
 });
 
 describe("AuditLog", () => {
+  test("treats an empty or whitespace salt as unset", () => {
+    for (const salt of ["", "   "]) {
+      const log = new AuditLog({ path: ":memory:", salt });
+      log.record(outcome());
+
+      const row = log.list(1, 0).rows[0]!;
+      expect(row.cidHashShort).not.toBe(hashCitizenId(CID, "").slice(0, 8));
+      expect(row.cidHashShort).not.toBe(hashCitizenId(CID, salt).slice(0, 8));
+      log.close();
+    }
+  });
+
   test("records a successful read and lists it newest first", () => {
     const log = new AuditLog({ path: ":memory:", salt: SALT });
 

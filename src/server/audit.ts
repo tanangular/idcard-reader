@@ -76,7 +76,13 @@ export class AuditLog {
   private readonly count: ReturnType<Database["query"]>;
 
   constructor(options: AuditLogOptions) {
-    this.salt = options.salt ?? process.env["AUDIT_SALT"] ?? randomBytes(32).toString("hex");
+    const configured = options.salt ?? process.env["AUDIT_SALT"];
+    // `??` alone treats an empty variable as a valid salt, hashing ids with
+    // no salt at all. A blank value means "unset": randomise instead.
+    this.salt =
+      configured !== undefined && configured.trim().length > 0
+        ? configured
+        : randomBytes(32).toString("hex");
 
     if (options.path !== ":memory:") {
       mkdirSync(dirname(options.path), { recursive: true });

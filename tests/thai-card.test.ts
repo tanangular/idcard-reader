@@ -15,12 +15,15 @@ interface FakeOptions {
   failSw?: number;
   /** Return data directly from READ instead of a 61 XX handshake. */
   noGetResponse?: boolean;
+  /** Answer the first GET RESPONSE with 6C XX before returning data. */
+  getResponse6c?: number;
 }
 
 /** Emulates the parts of a Thai ID card that thai-card.ts drives. */
 class FakeTransport implements CardTransport {
   readonly atrHex = ATR;
   private pending: { offset: number; length: number } | undefined;
+  private answered6c = false;
   readonly apdus: Uint8Array[] = [];
 
   constructor(
@@ -60,6 +63,10 @@ class FakeTransport implements CardTransport {
     }
 
     if (ins === 0xc0) {
+      if (this.options.getResponse6c !== undefined && !this.answered6c) {
+        this.answered6c = true;
+        return new Uint8Array([0x6c, this.options.getResponse6c]);
+      }
       const le = apdu[4] === 0 ? 0x100 : (apdu[4] ?? 0);
       const pending = this.pending ?? { offset: 0, length: 0 };
       this.pending = undefined;
@@ -106,6 +113,47 @@ describe("readThaiIdCard", () => {
     const result = readThaiIdCard(transport);
     expect(result.nameTh.lastName).toBe("รักไทย");
     expect(result.photo.dataUrl.length).toBeGreaterThan(300);
+  });
+
+  test("retries GET RESPONSE with 6C XX instead of resending the READ", () => {
+    const transport = new FakeTransport(makeCardBuffer(), { getResponse6c: 3 });
+
+    const result = readThaiIdCard(transport);
+
+    expect(result.citizenId).toBe("1101700203456");
+    expect(
+      transport.apdus.some(
+        (apdu) =>
+          apdu.length === 5 &&
+          apdu[0] === 0x00 &&
+          apdu[1] === 0xc0 &&
+          apdu[2] === 0x00 &&
+          apdu[3] === 0x00 &&
+          apdu[4] === 0x03,
+      ),
+    ).toBe(true);
+    // The buggy path re-read the same offset with the shorter length.
+    expect(
+      transport.apdus.some(
+        (apdu) => apdu[1] === 0xb0 && apdu[2] === 0x00 && apdu[3] === 0x00 && apdu[6] === 0x03,
+      ),
+    ).toBe(false);
+  });
+
+  test("rejects a photo length that would run into the address field", () => {
+    const transport = new FakeTransport(makeCardBuffer({ photoLengthOverride: 0x13ff }));
+
+    expect(() => readThaiIdCard(transport)).toThrow(PcscError);
+    try {
+      readThaiIdCard(transport);
+    } catch (error) {
+      expect((error as PcscError).app.code).toBe("PARSE_FAILED");
+    }
+    expect(
+      transport.apdus.some(
+        (apdu) => apdu[1] === 0xb0 && ((apdu[2]! << 8) | apdu[3]!) === FIXTURE_OFFSET.photo,
+      ),
+    ).toBe(false);
   });
 
   test("survives a card that answers READ directly instead of 61 XX", () => {

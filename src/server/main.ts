@@ -8,7 +8,7 @@
 import { join } from "node:path";
 import { AuditLog } from "./audit.ts";
 import { Pcsc } from "./pcsc.ts";
-import { createApp, createHub, DEFAULT_ALLOWED_ORIGINS } from "./server.ts";
+import { createApp, createHub, defaultAllowedOrigins } from "./server.ts";
 import { CardService } from "./state.ts";
 
 const HOST = process.env["HOST"] ?? "127.0.0.1";
@@ -23,7 +23,7 @@ const ALLOWED_ORIGINS = process.env["ALLOWED_ORIGINS"]
       .split(",")
       .map((origin) => origin.trim())
       .filter((origin) => origin.length > 0)
-  : DEFAULT_ALLOWED_ORIGINS;
+  : defaultAllowedOrigins(PORT, HOST);
 
 const pcsc = new Pcsc();
 const audit = new AuditLog({ path: AUDIT_DB });

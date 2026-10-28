@@ -97,9 +97,7 @@ export class CardService {
     error: null,
   };
 
-  /** `dwCurrentState` handed to SCardGetStatusChange; 0 means "unaware". */
-  private lastEventState = 0;
-  /** ATR of the card that produced the current snapshot. */
+  /** ATR of the card the current snapshot or error belongs to. */
   private lastAtrHex: string | null = null;
   private inFlight: Promise<ReadResult> | null = null;
   private running = false;
@@ -145,7 +143,6 @@ export class CardService {
 
     if (!reader) {
       this.announceRemoval();
-      this.lastEventState = 0;
       this.lastAtrHex = null;
       this.update({ phase: "no-reader", reader: null, readers, card: null, error: null });
       return;
@@ -153,17 +150,17 @@ export class CardService {
 
     let change: ReaderChange;
     try {
-      change = this.pcsc.waitForChange(reader, this.lastEventState, 0);
+      // Ask for the *current* state every tick; a zero timeout with an
+      // unchanged `dwCurrentState` reports SCARD_E_TIMEOUT and leaves the
+      // ATR empty, which is exactly how a swap between two polls hides.
+      change = this.pcsc.waitForChange(reader, 0, 0);
     } catch {
       // The reader vanished between listing and polling.
       this.announceRemoval();
-      this.lastEventState = 0;
       this.lastAtrHex = null;
       this.update({ phase: "no-reader", reader: null, readers, card: null, error: null });
       return;
     }
-
-    this.lastEventState = change.status.state;
 
     if (!eventStateHasCard(change.status.state)) {
       this.announceRemoval();
@@ -172,22 +169,18 @@ export class CardService {
       return;
     }
 
-    if (this.state.phase === "ready") {
+    const atrHex = change.status.atr.length > 0 ? formatAtr(change.status.atr) : null;
+
+    if (this.state.phase === "ready" || this.state.phase === "error") {
       // A different ATR without an observed removal means the card was
-      // swapped between polls; the old snapshot must not stay on screen.
-      const atrHex = change.status.atr.length > 0 ? formatAtr(change.status.atr) : null;
+      // swapped between polls; the old snapshot (or old error) must not stay
+      // on screen. A failed card stays failed while its ATR is unchanged,
+      // otherwise a broken card would be re-read every 500 ms.
       if (atrHex !== null && atrHex !== this.lastAtrHex) {
         this.announceRemoval();
         await this.read(reader, readers);
         return;
       }
-      this.update({ readers });
-      return;
-    }
-
-    // A card that failed stays failed until the user retries or replaces it;
-    // otherwise a broken card would be re-read every 500 ms.
-    if (this.state.phase === "error") {
       this.update({ readers });
       return;
     }
@@ -207,7 +200,6 @@ export class CardService {
 
     if (!reader) {
       const error = appError("NO_READER");
-      this.lastEventState = 0;
       this.lastAtrHex = null;
       this.update({ phase: "no-reader", reader: null, readers, card: null, error });
       return { ok: false, error };
@@ -215,7 +207,6 @@ export class CardService {
 
     try {
       const change = this.pcsc.waitForChange(reader, 0, 0);
-      this.lastEventState = change.status.state;
 
       if (!eventStateHasCard(change.status.state)) {
         const error = appError("NO_CARD");
@@ -257,6 +248,10 @@ export class CardService {
       if (status.atr.length === 0) throw new PcscError(appError("NO_CARD"));
 
       const atrHex = formatAtr(status.atr);
+      // Remember the ATR before the conversation: a parse failure still
+      // identifies which card is in the reader, so a replacement can be
+      // detected without observing the removal.
+      this.lastAtrHex = atrHex;
       const card = this.readCard(
         { atrHex, transmit: (apdu) => this.pcsc.transmit(handle!, apdu) },
         {
@@ -265,7 +260,6 @@ export class CardService {
         },
       );
 
-      this.lastAtrHex = atrHex;
       this.update({ phase: "ready", reader, readers, card, error: null });
       this.emit({ type: "card.snapshot", card });
       this.reportOutcome({
@@ -281,9 +275,6 @@ export class CardService {
       const cardIsGone = app.code === "CARD_REMOVED" || app.code === "NO_CARD";
 
       if (cardIsGone) {
-        // Ask the framework for a fresh event state next tick instead of
-        // trusting the one that came before the removal.
-        this.lastEventState = 0;
         this.lastAtrHex = null;
       }
 

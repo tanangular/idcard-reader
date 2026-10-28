@@ -76,12 +76,8 @@ const pad2 = (n: number): string => String(n).padStart(2, "0");
 const THAI_ENCODING = "windows-874";
 
 /** Strip NUL/space padding and any trailing '#' separators. */
-function clean(raw: string, keepSeparators: boolean): string {
-  const withoutPadding = raw.replace(/\0/g, " ").trim();
-  const trimmed = keepSeparators
-    ? withoutPadding.replace(/#+$/, "").trim()
-    : withoutPadding.replace(/#+$/, "").trim();
-  return trimmed;
+function clean(raw: string): string {
+  return raw.replace(/\0/g, " ").replace(/#+$/, "").trim();
 }
 
 function decodeTh(buffer: Uint8Array, field: CdeField): string {
@@ -92,18 +88,23 @@ function decodeTh(buffer: Uint8Array, field: CdeField): string {
   }
 }
 
+/**
+ * The English name, dates and citizen id are ASCII on the card. A byte
+ * above 0x7f is a wrong-card or wrong-offset signal, not text: reject it
+ * rather than passing Latin-1 mojibake through to the UI.
+ */
 function decodeAscii(buffer: Uint8Array, field: CdeField): string {
   let out = "";
   for (const byte of buffer) {
     if (byte === 0) break;
+    if (byte > 0x7f) throw new CdeParseError(field, `invalid ascii: ${field}`);
     out += String.fromCharCode(byte);
   }
-  if (out.includes("\uFFFD")) throw new CdeParseError(field, `invalid ascii: ${field}`);
   return out;
 }
 
 function splitName(raw: string, field: CdeField): PersonName {
-  const parts = clean(raw, true)
+  const parts = clean(raw)
     .split("#")
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
@@ -186,7 +187,7 @@ export function parseCde(read: CdeReader): ParsedCard {
   const nameTh = splitName(decodeTh(field("nameTh"), "nameTh"), "nameTh");
 
   const nameEnRaw = decodeAscii(field("nameEn"), "nameEn");
-  const nameEnParts = clean(nameEnRaw, true);
+  const nameEnParts = clean(nameEnRaw);
   const nameEn = nameEnParts.length === 0 ? null : splitName(nameEnRaw, "nameEn");
 
   const dateOfBirth = parseDate(decodeAscii(field("dateOfBirth"), "dateOfBirth"), "dateOfBirth");
@@ -197,7 +198,7 @@ export function parseCde(read: CdeReader): ParsedCard {
 
   const issuer = decodeTh(field("issuer"), "issuer").replace(/\0/g, " ").trim();
 
-  const address = clean(decodeTh(field("address"), "address"), false)
+  const address = clean(decodeTh(field("address"), "address"))
     .replace(/#/g, " ")
     .replace(/\s+/g, " ")
     .trim();

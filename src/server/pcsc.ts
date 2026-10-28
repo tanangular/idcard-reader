@@ -378,10 +378,6 @@ export function eventStateHasCard(eventState: number): boolean {
   return (eventState & SCARD_STATE_PRESENT) !== 0;
 }
 
-export function eventStateIsCardGone(eventState: number): boolean {
-  return (eventState & SCARD_STATE_EMPTY) !== 0 || (eventState & SCARD_STATE_MUTE) !== 0;
-}
-
 /** A successful SCardStatus with a non-empty ATR is the reliable presence signal. */
 export function statusHasCard(status: ReaderStatus): boolean {
   return status.atr.length > 0;

@@ -17,8 +17,12 @@ const SELECT_APPLET = new Uint8Array([
 
 const MAX_READ = 0xff;
 const MAX_APDU_ROUNDS = 16;
-/** The card's data area is 0x1700 bytes; anything larger is a bad length. */
-const MAX_PHOTO_BYTES = 0x4000;
+/**
+ * The address CDE starts at 0x1579, right after the photo, so a photo longer
+ * than this would read into unrelated data. Reject a bad length early
+ * instead of issuing up to 64 pointless READs.
+ */
+const MAX_PHOTO_BYTES = 0x1579 - 0x017b;
 
 const JPEG_SOI = 0xffd8;
 const JPEG_EOI = 0xffd9;
@@ -53,7 +57,14 @@ function shrink(command: Uint8Array, length: number): Uint8Array {
     out[6] = length & 0xff;
     return out;
   }
-  // Case-3 commands get a trailing Le instead.
+  // GET RESPONSE is a case-2 command: it already ends in Le, so replace it
+  // rather than appending a second Le byte.
+  if (out[1] === 0xc0) {
+    const fixed = out.slice(0, 5);
+    fixed[4] = length & 0xff;
+    return fixed;
+  }
+  // Other case-3 commands get a trailing Le instead.
   const withLe = new Uint8Array(out.length + 1);
   withLe.set(out);
   withLe[out.length] = length & 0xff;
@@ -61,7 +72,10 @@ function shrink(command: Uint8Array, length: number): Uint8Array {
 }
 
 function transceive(transport: CardTransport, command: Uint8Array): Uint8Array {
-  let response = transport.transmit(command);
+  // Track the command actually in flight: a GET RESPONSE can itself answer
+  // `6C XX`, and the retry must shorten *that* command, not the READ before it.
+  let current = command;
+  let response = transport.transmit(current);
 
   for (let round = 0; round < MAX_APDU_ROUNDS; round++) {
     const sw = statusWord(response);
@@ -71,11 +85,13 @@ function transceive(transport: CardTransport, command: Uint8Array): Uint8Array {
     const hi = sw & 0xff00;
     if (hi === 0x6100) {
       const le = sw & 0xff; // 0x00 means 256
-      response = transport.transmit(new Uint8Array([0x00, 0xc0, 0x00, 0x00, le]));
+      current = new Uint8Array([0x00, 0xc0, 0x00, 0x00, le]);
+      response = transport.transmit(current);
       continue;
     }
     if (hi === 0x6c00) {
-      response = transport.transmit(shrink(command, sw & 0xff));
+      current = shrink(current, sw & 0xff);
+      response = transport.transmit(current);
       continue;
     }
 

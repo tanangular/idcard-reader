@@ -32,7 +32,8 @@ const CARD: ThaiIdCard = {
  *
  * `waitForChange` reports the current state, exactly as SCardGetStatusChange
  * does with a zero timeout, and sets `changed` when it differs from the
- * caller's `dwCurrentState`.
+ * caller's `dwCurrentState`. Like the real framework, it returns an empty
+ * ATR when the caller already knows the current state.
  */
 class FakePort implements PcscPort {
   readers: string[] = ["Fake Reader"];
@@ -72,6 +73,17 @@ class FakePort implements PcscPort {
   waitForChange(reader: string, currentState: number): ReaderChange {
     if (!this.readers.includes(reader)) throw new PcscError(appError("NO_READER"));
     const state = this.present ? 0x22 : 0x12;
+
+    // SCARD_E_TIMEOUT: when the caller already knows this state, the
+    // framework does not write dwEventState and leaves the ATR empty. A
+    // card swapped between polls otherwise looks exactly like this.
+    if (currentState !== 0 && state === currentState) {
+      return {
+        changed: false,
+        status: { state: currentState, atr: new Uint8Array(), reader, protocol: 0 },
+      };
+    }
+
     return {
       changed: state !== currentState,
       status: {
@@ -334,21 +346,45 @@ describe("CardService", () => {
   test("re-reads when a different card appears without an observed removal", async () => {
     let reads = 0;
     const { port, service } = harness({
-      readCard: () => {
+      readCard: (transport) => {
         reads++;
-        return CARD;
+        return { ...CARD, atr: transport.atrHex };
       },
     });
     await service.tick();
     port.present = true;
     await service.tick();
     expect(reads).toBe(1);
+    expect(service.getState().card?.atr).toBe(ATR);
 
     port.atr = OTHER_ATR;
     await service.tick();
 
     expect(reads).toBe(2);
     expect(service.getState().phase).toBe("ready");
+    expect(service.getState().card?.atr).toBe(OTHER_ATR);
+  });
+
+  test("re-reads when a different card replaces a failed one", async () => {
+    let attempts = 0;
+    const { port, service } = harness({
+      readCard: (transport) => {
+        attempts++;
+        if (attempts === 1) throw new PcscError(appError("PARSE_FAILED"));
+        return { ...CARD, atr: transport.atrHex };
+      },
+    });
+    await service.tick();
+    port.present = true;
+    await service.tick();
+    expect(service.getState().phase).toBe("error");
+
+    port.atr = OTHER_ATR;
+    await service.tick();
+
+    expect(attempts).toBe(2);
+    expect(service.getState().phase).toBe("ready");
+    expect(service.getState().card?.atr).toBe(OTHER_ATR);
   });
 
   test("survives a failing listReaders call", async () => {

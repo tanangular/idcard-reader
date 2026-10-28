@@ -14,13 +14,26 @@ import { parseClientMsg } from "../shared/protocol.ts";
 import type { AppError, AuditRow, ServerMsg } from "../shared/protocol.ts";
 import type { CardState, ReadResult } from "./state.ts";
 
-/** Where the browser client is served from in dev. */
-export const DEFAULT_ALLOWED_ORIGINS: readonly string[] = [
-  "http://127.0.0.1:3000",
-  "http://localhost:3000",
-  "http://127.0.0.1:5173",
-  "http://localhost:5173",
-];
+/** The ports the bundled client and the Vite dev server listen on. */
+const CLIENT_PORT = 3000;
+const VITE_PORT = 5173;
+
+/**
+ * Origins allowed by default: the server's own port (whatever `PORT` says)
+ * plus the Vite dev port, for loopback and `localhost`. Deriving this from
+ * the configured port keeps `PORT=4000 bun run start` usable.
+ */
+export function defaultAllowedOrigins(port: number, host = "127.0.0.1"): readonly string[] {
+  const origins = new Set<string>();
+  for (const name of [host, "127.0.0.1", "localhost"]) {
+    origins.add(`http://${name}:${port}`);
+    origins.add(`http://${name}:${VITE_PORT}`);
+  }
+  return [...origins];
+}
+
+/** Defaults for the documented production port. */
+export const DEFAULT_ALLOWED_ORIGINS: readonly string[] = defaultAllowedOrigins(CLIENT_PORT);
 
 /**
  * True when the handshake may proceed.
@@ -217,6 +230,11 @@ export function createApp(options: AppOptions) {
       hub.send(socket, { type: "reader.state", state: state.phase, readers: state.readers });
       if (state.card !== null) {
         hub.send(socket, { type: "card.snapshot", card: state.card });
+      }
+      if (state.error !== null) {
+        // Without this, a page opened while the service is in `error` has no
+        // retry button: the client's error branch needs the error object.
+        hub.send(socket, { type: "card.error", error: state.error });
       }
     },
 
