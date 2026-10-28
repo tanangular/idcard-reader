@@ -1,80 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { CDE, CdeParseError, parseCde } from "../src/server/cde.ts";
-
-/**
- * Offsets are written out literally here on purpose: the plan's §7 table
- * disagrees with the card's real layout, so the test pins what the card in
- * hand actually reports instead of trusting a shared constant.
- *
- * Observed on a 2567-series card:
- *   0x0000  4  header ("0004")          0x00E1  1  sex (ASCII)
- *   0x0004 13  citizen id               0x00E2 20  registration code (unused)
- *   0x0011 100 Thai name                0x00F6 100 issuer
- *   0x0075 100 English name             0x015A 13  card serial (unused)
- *   0x00D9  8  date of birth            0x0167  8  issue date
- *                                       0x016F  8  expire date
- *                                       0x0179  2  photo length (BE u16)
- *                                       0x017B     photo (JPEG)
- *                                       0x1579 160 address
- */
-const OFFSET = {
-  citizenId: 0x0004,
-  nameTh: 0x0011,
-  nameEn: 0x0075,
-  dateOfBirth: 0x00d9,
-  sex: 0x00e1,
-  issuer: 0x00f6,
-  issueDate: 0x0167,
-  expireDate: 0x016f,
-  address: 0x1579,
-} as const;
-
-const CARD_BYTES = 0x1700;
-
-/**
- * Encode a string the way TIS-620 defines it: ASCII passes through, and the
- * Thai block U+0E01..U+0E5B maps to 0xA1..0xFB. Written independently of
- * iconv-lite so a wrong codepage in production shows up as a test failure.
- */
-function tis620(text: string): Uint8Array {
-  const out: number[] = [];
-  for (const ch of text) {
-    const cp = ch.codePointAt(0);
-    if (cp === undefined) continue;
-    if (cp < 0x80) out.push(cp);
-    else if (cp >= 0x0e01 && cp <= 0x0e5b) out.push(cp - 0x0e00 + 0xa0);
-    else throw new Error(`unmappable character: ${ch}`);
-  }
-  return Uint8Array.from(out);
-}
-
-function put(buf: Uint8Array, offset: number, data: Uint8Array | number[]): void {
-  const bytes = data instanceof Uint8Array ? data : Uint8Array.from(data);
-  buf.set(bytes, offset);
-}
-
-const ascii = (text: string): Uint8Array => new TextEncoder().encode(text);
-
-function makeCard(overrides: Partial<Record<keyof typeof OFFSET, Uint8Array | number[]>> = {}): Uint8Array {
-  const buf = new Uint8Array(CARD_BYTES);
-  buf.fill(0x20);
-  const fields: Record<keyof typeof OFFSET, Uint8Array | number[]> = {
-    citizenId: ascii("1101700203456"),
-    nameTh: tis620("นาย#สมชาย#ใจดี#รักไทย#"),
-    nameEn: ascii("Mr.#Somchai#JaiDee#Rakthai#"),
-    dateOfBirth: ascii("25300115"),
-    sex: [1],
-    issuer: tis620("สำนักทะเบียนกลาง"),
-    issueDate: ascii("25600101"),
-    expireDate: ascii("25700101"),
-    address: tis620("99 หมู่ 5 ตำบลในเมือง"),
-    ...overrides,
-  };
-  for (const [field, value] of Object.entries(fields) as Array<[keyof typeof OFFSET, Uint8Array | number[]]>) {
-    put(buf, OFFSET[field], value);
-  }
-  return buf;
-}
+import { CARD_BYTES, FIXTURE_OFFSET, makeCardBuffer, put, tis620 } from "./fixtures/card.ts";
 
 function readerFor(buf: Uint8Array) {
   return (offset: number, length: number): Uint8Array => {
@@ -88,23 +14,26 @@ function readerFor(buf: Uint8Array) {
 describe("CDE layout", () => {
   test("matches the offsets observed on the real card", () => {
     expect(CARD_BYTES).toBe(0x1700);
-    expect(CDE.citizenId).toEqual({ offset: 0x0004, length: 13 });
-    expect(CDE.nameTh).toEqual({ offset: 0x0011, length: 100 });
-    expect(CDE.nameEn).toEqual({ offset: 0x0075, length: 100 });
-    expect(CDE.dateOfBirth).toEqual({ offset: 0x00d9, length: 8 });
-    expect(CDE.sex).toEqual({ offset: 0x00e1, length: 1 });
-    expect(CDE.issuer).toEqual({ offset: 0x00f6, length: 100 });
-    expect(CDE.issueDate).toEqual({ offset: 0x0167, length: 8 });
-    expect(CDE.expireDate).toEqual({ offset: 0x016f, length: 8 });
-    expect(CDE.address).toEqual({ offset: 0x1579, length: 160 });
+    expect(CDE.citizenId).toEqual({ offset: FIXTURE_OFFSET.citizenId, length: 13 });
+    expect(CDE.nameTh).toEqual({ offset: FIXTURE_OFFSET.nameTh, length: 100 });
+    expect(CDE.nameEn).toEqual({ offset: FIXTURE_OFFSET.nameEn, length: 100 });
+    expect(CDE.dateOfBirth).toEqual({ offset: FIXTURE_OFFSET.dateOfBirth, length: 8 });
+    expect(CDE.sex).toEqual({ offset: FIXTURE_OFFSET.sex, length: 1 });
+    expect(CDE.issuer).toEqual({ offset: FIXTURE_OFFSET.issuer, length: 100 });
+    expect(CDE.issueDate).toEqual({ offset: FIXTURE_OFFSET.issueDate, length: 8 });
+    expect(CDE.expireDate).toEqual({ offset: FIXTURE_OFFSET.expireDate, length: 8 });
+    expect(CDE.address).toEqual({ offset: FIXTURE_OFFSET.address, length: 160 });
   });
 
   test("the identity block is contiguous up to sex", () => {
     const chain = ["citizenId", "nameTh", "nameEn", "dateOfBirth", "sex"] as const;
+    // Widened to `number`: the CDE offsets are literal types, and `toBe`
+    // would then demand the expected value be one of those literals.
+    const offsetOf = (field: (typeof chain)[number]): number => CDE[field].offset;
     for (let i = 1; i < chain.length; i++) {
       const prev = chain[i - 1]!;
       const curr = chain[i]!;
-      expect(CDE[curr].offset).toBe(CDE[prev].offset + CDE[prev].length);
+      expect(offsetOf(curr)).toBe(offsetOf(prev) + CDE[prev].length);
     }
   });
 
@@ -121,7 +50,7 @@ describe("CDE layout", () => {
 
 describe("parseCde", () => {
   test("reads every field of a well-formed card", () => {
-    const card = parseCde(readerFor(makeCard()));
+    const card = parseCde(readerFor(makeCardBuffer()));
 
     expect(card.citizenId).toBe("1101700203456");
     expect(card.nameTh).toEqual({
@@ -145,7 +74,7 @@ describe("parseCde", () => {
   });
 
   test("lays out a three-part Thai name without a middle name", () => {
-    const card = parseCde(readerFor(makeCard({ nameTh: tis620("นาง#สมหญิง#รักไทย#") })));
+    const card = parseCde(readerFor(makeCardBuffer({ fields: { nameTh: tis620("นาง#สมหญิง#รักไทย#") } })));
     expect(card.nameTh).toEqual({
       prefix: "นาง",
       firstName: "สมหญิง",
@@ -155,7 +84,7 @@ describe("parseCde", () => {
   });
 
   test("treats a blank English name as absent", () => {
-    const card = parseCde(readerFor(makeCard({ nameEn: [] })));
+    const card = parseCde(readerFor(makeCardBuffer({ fields: { nameEn: [] } })));
     expect(card.nameEn).toBeNull();
   });
 
@@ -163,34 +92,42 @@ describe("parseCde", () => {
     const padded = new Uint8Array(CDE.nameTh.length);
     padded.set(tis620("นาย#สมชาย#ใจดี#รักไทย#"));
     padded.fill(0x00, 30);
-    const card = parseCde(readerFor(makeCard({ nameTh: padded })));
+    const card = parseCde(readerFor(makeCardBuffer({ fields: { nameTh: padded } })));
     expect(card.nameTh.lastName).toBe("รักไทย");
   });
 
   test("maps sex byte 2 to female and anything else to unknown", () => {
-    expect(parseCde(readerFor(makeCard({ sex: [2] }))).sex).toBe("female");
-    expect(parseCde(readerFor(makeCard({ sex: [0] }))).sex).toBe("unknown");
-    expect(parseCde(readerFor(makeCard({ sex: [9] }))).sex).toBe("unknown");
+    expect(parseCde(readerFor(makeCardBuffer({ fields: { sex: [2] } }))).sex).toBe("female");
+    expect(parseCde(readerFor(makeCardBuffer({ fields: { sex: [0] } }))).sex).toBe("unknown");
+    expect(parseCde(readerFor(makeCardBuffer({ fields: { sex: [9] } }))).sex).toBe("unknown");
+  });
+
+  test("accepts both the ASCII and the raw sex digit", () => {
+    expect(parseCde(readerFor(makeCardBuffer({ fields: { sex: [0x31] } }))).sex).toBe("male");
+    expect(parseCde(readerFor(makeCardBuffer({ fields: { sex: [0x32] } }))).sex).toBe("female");
   });
 
   test("converts Buddhist Era years to Gregorian", () => {
-    const card = parseCde(readerFor(makeCard({ dateOfBirth: ascii("25000101") })));
+    const card = parseCde(readerFor(makeCardBuffer({ fields: { dateOfBirth: new TextEncoder().encode("25000101") } })));
     expect(card.dateOfBirth).toBe("1957-01-01");
   });
 
   test("replaces address line separators with spaces", () => {
-    const card = parseCde(readerFor(makeCard({ address: tis620("99 หมู่ 5#ตำบลในเมือง#") })));
+    const card = parseCde(
+      readerFor(makeCardBuffer({ fields: { address: tis620("99 หมู่ 5#ตำบลในเมือง#") } })),
+    );
     expect(card.address).toBe("99 หมู่ 5 ตำบลในเมือง");
   });
 
   test("rejects a malformed citizen id", () => {
-    expect(() => parseCde(readerFor(makeCard({ citizenId: ascii("11017002034X6") })))).toThrow(CdeParseError);
-    expect(() => parseCde(readerFor(makeCard({ citizenId: ascii("12345") })))).toThrow(CdeParseError);
+    const bad = new Uint8Array(CARD_BYTES).fill(0x20);
+    put(bad, FIXTURE_OFFSET.citizenId, new TextEncoder().encode("11017002034X6"));
+    expect(() => parseCde(readerFor(bad))).toThrow(CdeParseError);
   });
 
   test("rejects an impossible date and names the field", () => {
     try {
-      parseCde(readerFor(makeCard({ dateOfBirth: ascii("25301301") })));
+      parseCde(readerFor(makeCardBuffer({ fields: { dateOfBirth: new TextEncoder().encode("25301301") } })));
       throw new Error("expected a throw");
     } catch (error) {
       expect(error).toBeInstanceOf(CdeParseError);
@@ -199,12 +136,14 @@ describe("parseCde", () => {
   });
 
   test("rejects a non-numeric date", () => {
-    expect(() => parseCde(readerFor(makeCard({ issueDate: ascii("2560-1-1") })))).toThrow(CdeParseError);
+    expect(() =>
+      parseCde(readerFor(makeCardBuffer({ fields: { issueDate: new TextEncoder().encode("2560-1-1") } }))),
+    ).toThrow(CdeParseError);
   });
 
   test("throws a CdeParseError whose message carries no card data", () => {
     try {
-      parseCde(readerFor(makeCard({ dateOfBirth: ascii("00000000") })));
+      parseCde(readerFor(makeCardBuffer({ fields: { dateOfBirth: new TextEncoder().encode("00000000") } })));
       throw new Error("expected a throw");
     } catch (error) {
       expect(error).toBeInstanceOf(CdeParseError);

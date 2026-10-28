@@ -70,6 +70,9 @@ export class CdeParseError extends Error {
 /** The card reports years in the Buddhist Era; the UI wants Gregorian. */
 const BUDDHIST_ERA_OFFSET = 543;
 
+/** Two-digit zero padding for month/day. */
+const pad2 = (n: number): string => String(n).padStart(2, "0");
+
 const THAI_ENCODING = "windows-874";
 
 /** Strip NUL/space padding and any trailing '#' separators. */
@@ -153,8 +156,7 @@ function parseDate(raw: string, field: CdeField): string {
     throw new CdeParseError(field, `impossible date: ${field}`);
   }
 
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${String(gregorian).padStart(4, "0")}-${pad(month)}-${pad(day)}`;
+  return `${String(gregorian).padStart(4, "0")}-${pad2(month)}-${pad2(day)}`;
 }
 
 function parseSex(raw: Uint8Array): Sex {
