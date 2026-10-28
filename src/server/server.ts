@@ -201,6 +201,12 @@ export function createApp(options: AppOptions) {
       if (served !== null) return served;
     }
 
+    // Hashed assets are immutable; a miss means a stale page or a bad deploy.
+    // The SPA shell would only turn that into a confusing MIME error.
+    if (url.pathname.startsWith("/assets/")) {
+      return new Response("not found", { status: 404 });
+    }
+
     return serveIndex(distDir);
   }
 

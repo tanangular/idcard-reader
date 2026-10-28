@@ -377,6 +377,15 @@ describe("Bun.serve app", () => {
     expect(res.headers.get("cache-control")).toContain("immutable");
   });
 
+  test("returns 404 for a missing asset instead of the SPA shell", async () => {
+    const { base } = await startWith();
+
+    const res = await fetch(`${base}/assets/missing.js`);
+
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe("not found");
+  });
+
   test("never serves a file outside dist", async () => {
     const { base } = await startWith();
 
