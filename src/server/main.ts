@@ -2,21 +2,25 @@
  * Composition root. Everything with a side effect is wired here; the
  * modules it wires are testable on their own.
  *
- * Binds to loopback only, and only answers WebSocket handshakes from the
- * dev/prod origins (or whatever ALLOWED_ORIGINS lists).
+ * Binds to loopback locally, and to 0.0.0.0 when running in a container on
+ * Vercel. WebSocket handshakes are accepted only from the configured origins.
  */
 import { join } from "node:path";
 import { AuditLog } from "./audit";
-import { Pcsc } from "./pcsc";
+import { createPcsc } from "./pcsc";
 import { createApp, createHub, defaultAllowedOrigins } from "./server";
 import { CardService } from "./state";
 
-const HOST = process.env["HOST"] ?? "127.0.0.1";
-const PORT = Number(process.env["PORT"] ?? 3000);
+/** Vercel sets `VERCEL_URL` on every deployment; local runs do not. */
+const IS_VERCEL = process.env["VERCEL"] === "1" || process.env["VERCEL_URL"] !== undefined;
+
+const HOST = process.env["HOST"] ?? (IS_VERCEL ? "0.0.0.0" : "127.0.0.1");
+const PORT = Number(process.env["PORT"] ?? (IS_VERCEL ? 80 : 3000));
 
 const ROOT = join(import.meta.dir, "../..");
 const DIST_DIR = join(ROOT, "dist");
-const AUDIT_DB = process.env["AUDIT_DB"] ?? join(ROOT, "data", "audit.db");
+const AUDIT_DB =
+  process.env["AUDIT_DB"] ?? (IS_VERCEL ? "/tmp/idcard-audit.db" : join(ROOT, "data", "audit.db"));
 
 const ALLOWED_ORIGINS = process.env["ALLOWED_ORIGINS"]
   ? process.env["ALLOWED_ORIGINS"]
@@ -25,12 +29,16 @@ const ALLOWED_ORIGINS = process.env["ALLOWED_ORIGINS"]
       .filter((origin) => origin.length > 0)
   : defaultAllowedOrigins(PORT, HOST);
 
-const pcsc = new Pcsc();
+const pcsc = createPcsc();
+if (pcsc.error !== null) {
+  console.warn(`PC/SC unavailable (${pcsc.error.message}); card reading is disabled`);
+}
+
 const audit = new AuditLog({ path: AUDIT_DB });
 const hub = createHub();
 
 const service = new CardService({
-  pcsc,
+  pcsc: pcsc.port,
   emit: hub.broadcast,
   onOutcome: (outcome) => audit.record(outcome),
 });
@@ -42,7 +50,7 @@ const server = Bun.serve({
     hub,
     service,
     audit,
-    listReaders: () => pcsc.listReaders(),
+    listReaders: () => pcsc.port.listReaders(),
     distDir: DIST_DIR,
     allowedOrigins: ALLOWED_ORIGINS,
   }),
@@ -63,7 +71,7 @@ function shutdown(signal: string): void {
   service.stop();
   server.stop(true);
   audit.close();
-  pcsc.release();
+  pcsc.port.release();
   process.exit(0);
 }
 

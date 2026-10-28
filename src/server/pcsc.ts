@@ -1,5 +1,5 @@
 import koffi from "koffi";
-import { decodePcscError, PcscError, PCSC } from "./errors";
+import { appError, decodePcscError, PcscError, PCSC } from "./errors";
 
 const PCSC_PATH = "/System/Library/Frameworks/PCSC.framework/PCSC";
 
@@ -371,6 +371,64 @@ export class Pcsc implements PcscPort {
       // ignore
     }
     this.context = undefined;
+  }
+}
+
+/**
+ * Stand-in used when the PC/SC library cannot load, for example in a Linux
+ * container without a smart-card stack. The HTTP/WS app stays up and reports
+ * `no-reader` instead of crash-looping on boot.
+ */
+export class UnavailablePcsc implements PcscPort {
+  listReaders(): string[] {
+    return [];
+  }
+
+  connect(_reader: string): never {
+    throw new PcscError(appError("NO_READER"));
+  }
+
+  status(_handle: PcscHandle): never {
+    throw new PcscError(appError("NO_READER"));
+  }
+
+  transmit(_handle: PcscHandle, _apdu: Uint8Array): never {
+    throw new PcscError(appError("NO_READER"));
+  }
+
+  disconnect(_handle: PcscHandle): void {
+    // Nothing was opened.
+  }
+
+  waitForChange(reader: string, currentState: number): ReaderChange {
+    return {
+      changed: false,
+      status: { state: currentState, atr: new Uint8Array(), reader, protocol: 0 },
+    };
+  }
+
+  release(): void {
+    // Nothing was acquired.
+  }
+}
+
+export interface PcscInit {
+  port: PcscPort;
+  error: Error | null;
+}
+
+/**
+ * Build the real PC/SC port, or a no-reader port when the library is absent.
+ * The factory is injectable so the fallback is tested without touching FFI.
+ */
+export function createPcsc(create: () => PcscPort = () => new Pcsc()): PcscInit {
+  try {
+    return { port: create(), error: null };
+  } catch (error) {
+    return {
+      port: new UnavailablePcsc(),
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
   }
 }
 

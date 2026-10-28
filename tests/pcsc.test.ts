@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { decodePcscError, formatPcscCode } from "#server/errors";
-import { formatAtr, parseReaderList } from "#server/pcsc";
+import { decodePcscError, formatPcscCode, PcscError } from "#server/errors";
+import { createPcsc, formatAtr, parseReaderList, UnavailablePcsc } from "#server/pcsc";
 
 describe("parseReaderList", () => {
   test("returns an empty array for an empty block", () => {
@@ -81,5 +81,35 @@ describe("decodePcscError", () => {
       const err = decodePcscError(code);
       expect(err.message).not.toMatch(/\d{13}/);
     }
+  });
+});
+
+describe("createPcsc", () => {
+  test("returns the real port when construction succeeds", () => {
+    const fake = new UnavailablePcsc();
+    const init = createPcsc(() => fake);
+
+    expect(init.error).toBeNull();
+    expect(init.port).toBe(fake);
+  });
+
+  test("degrades to a no-reader port when PC/SC cannot load", () => {
+    const init = createPcsc(() => {
+      throw new Error("no PC/SC library");
+    });
+
+    expect(init.error?.message).toBe("no PC/SC library");
+    expect(init.port).toBeInstanceOf(UnavailablePcsc);
+    expect(init.port.listReaders()).toEqual([]);
+    expect(() => init.port.connect("reader")).toThrow(PcscError);
+  });
+
+  test("keeps the fallback wait non-blocking", () => {
+    const port = new UnavailablePcsc();
+    const change = port.waitForChange("reader", 0x20);
+
+    expect(change.changed).toBe(false);
+    expect(change.status.state).toBe(0x20);
+    expect(change.status.atr.length).toBe(0);
   });
 });

@@ -18,12 +18,49 @@ import type { CardState, ReadResult } from "./state";
 const CLIENT_PORT = 3000;
 const VITE_PORT = 5173;
 
+type Env = Record<string, string | undefined>;
+
+/** Vercel exposes hostnames, not URLs; accept a full URL defensively. */
+function normalizeVercelHost(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const host = trimmed.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  return host.length > 0 ? host : null;
+}
+
 /**
- * Origins allowed by default: the server's own port (whatever `PORT` says)
- * plus the Vite dev port, for loopback and `localhost`. Deriving this from
- * the configured port keeps `PORT=4000 bun run start` usable.
+ * HTTPS origins for the deployment Vercel is serving.
+ *
+ * `VERCEL_URL` is the immutable deployment hostname, `VERCEL_BRANCH_URL` the
+ * branch alias and `VERCEL_PROJECT_PRODUCTION_URL` the production domain.
+ * Preview deployments get a fresh `VERCEL_URL`, so the allowlist follows the
+ * deployment instead of being pinned to localhost.
  */
-export function defaultAllowedOrigins(port: number, host = "127.0.0.1"): readonly string[] {
+export function vercelOrigins(env: Env = process.env): readonly string[] {
+  const origins = new Set<string>();
+  for (const key of ["VERCEL_URL", "VERCEL_BRANCH_URL", "VERCEL_PROJECT_PRODUCTION_URL"] as const) {
+    const host = normalizeVercelHost(env[key]);
+    if (host !== null) origins.add(`https://${host}`);
+  }
+  return [...origins];
+}
+
+/**
+ * Origins allowed by default.
+ *
+ * On Vercel, only the deployment's HTTPS hosts are accepted: the container is
+ * public, so keeping loopback origins in the list would be misleading.
+ * Locally, the server's own port (whatever `PORT` says) plus the Vite dev port
+ * are allowed for loopback and `localhost`.
+ */
+export function defaultAllowedOrigins(
+  port: number,
+  host = "127.0.0.1",
+  env: Env = process.env,
+): readonly string[] {
+  const deployment = vercelOrigins(env);
+  if (deployment.length > 0) return deployment;
+
   const origins = new Set<string>();
   for (const name of [host, "127.0.0.1", "localhost"]) {
     origins.add(`http://${name}:${port}`);

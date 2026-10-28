@@ -10,6 +10,7 @@ import {
   defaultAllowedOrigins,
   isOriginAllowed,
   safeJoin,
+  vercelOrigins,
   type AppOptions,
   type CardSource,
   type HistorySource,
@@ -82,6 +83,41 @@ describe("defaultAllowedOrigins", () => {
   test("does not repeat an origin when the port is the Vite port", () => {
     const origins = defaultAllowedOrigins(5173);
     expect(new Set(origins).size).toBe(origins.length);
+  });
+
+  test("uses only the Vercel deployment origins when VERCEL_URL is set", () => {
+    const origins = defaultAllowedOrigins(80, "0.0.0.0", {
+      VERCEL: "1",
+      VERCEL_URL: "idcard-abc123.vercel.app",
+      VERCEL_BRANCH_URL: "idcard-git-main-user.vercel.app",
+      VERCEL_PROJECT_PRODUCTION_URL: "idcard.vercel.app",
+    });
+
+    expect(origins).toContain("https://idcard-abc123.vercel.app");
+    expect(origins).toContain("https://idcard-git-main-user.vercel.app");
+    expect(origins).toContain("https://idcard.vercel.app");
+    expect(origins).not.toContain("http://127.0.0.1:80");
+    expect(origins).not.toContain("http://localhost:5173");
+  });
+});
+
+describe("vercelOrigins", () => {
+  test("normalizes a scheme and trailing slash", () => {
+    expect(vercelOrigins({ VERCEL_URL: "https://idcard.vercel.app/" })).toEqual([
+      "https://idcard.vercel.app",
+    ]);
+  });
+
+  test("deduplicates the same host from different variables", () => {
+    const origins = vercelOrigins({
+      VERCEL_URL: "idcard.vercel.app",
+      VERCEL_BRANCH_URL: "idcard.vercel.app",
+    });
+    expect(origins).toEqual(["https://idcard.vercel.app"]);
+  });
+
+  test("ignores blank values", () => {
+    expect(vercelOrigins({ VERCEL_URL: "  ", VERCEL_BRANCH_URL: "" })).toEqual([]);
   });
 });
 

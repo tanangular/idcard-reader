@@ -2,7 +2,7 @@
 
 > **เดโมสำหรับสาธิตเท่านั้น ไม่ใช่ระบบสำหรับใช้งานจริง**
 >
-> โค้ดชุดนี้ไม่มีระบบยืนยันตัวตน ไม่มีการเข้ารหัสการเชื่อมต่อ (HTTP/WS ธรรมดาบน loopback)
+> โค้ดชุดนี้ไม่มีระบบยืนยันตัวตน การเชื่อมต่อ local เป็น HTTP/WS บน loopback (Vercel ใช้ TLS ของแพลตฟอร์ม)
 > ไม่มี rate limit ไม่มีผู้ใช้หลายคน และไม่ได้ผ่านการตรวจสอบความปลอดภัยใด ๆ
 > ห้ามนำไปใช้เก็บหรือประมวลผลข้อมูลบัตรของผู้อื่นโดยไม่ได้รับความยินยอม
 
@@ -10,8 +10,8 @@
 ระบบจะอ่านบัตรอัตโนมัติเมื่อเสียบบัตร แสดงความคืบหน้าระหว่างอ่าน และล้างข้อมูลทันทีเมื่อถอดบัตร
 พร้อมหน้า `/history` ที่แสดงเฉพาะข้อมูลเมตาของการอ่าน (ไม่มีข้อมูลส่วนบุคคล)
 
-ข้อมูลบัตรอยู่ในหน่วยความจำของเซิร์ฟเวอร์บนเครื่องนี้เท่านั้น ไม่ถูกส่งออกไปที่ใด
-และไม่ถูกเขียนลงดิสก์
+ข้อมูลบัตรอยู่ในหน่วยความจำของเซิร์ฟเวอร์ที่รันแอปและเบราว์เซอร์ที่เปิดหน้าเว็บเท่านั้น
+ไม่ถูกเขียนลงดิสก์หรือส่งไปยังบริการอื่น บน Vercel ไม่มีเครื่องอ่านบัตร จึงไม่มีข้อมูลบัตรจริงใน deployment
 
 ---
 
@@ -66,11 +66,11 @@ bun run start
 
 | ตัวแปร             | ค่าเริ่มต้น                                                             | ความหมาย                                                                          |
 | ----------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `HOST`            | `127.0.0.1`                                                         | ที่อยู่ที่เซิร์ฟเวอร์ bind (อย่าเปลี่ยนเป็น `0.0.0.0` ในเดโมนี้)                                 |
-| `PORT`            | `3000`                                                              | พอร์ตของ Bun                                                                       |
-| `AUDIT_DB`        | `data/audit.db`                                                     | พาธไฟล์ SQLite ของ audit log                                                       |
+| `HOST`            | `127.0.0.1` (local), `0.0.0.0` (Vercel)                             | ที่อยู่ที่เซิร์ฟเวอร์ bind — local อย่าเปลี่ยนเป็น `0.0.0.0`; container ต้องใช้ `0.0.0.0`        |
+| `PORT`            | `3000` (local), `80` (Vercel)                                       | พอร์ตของ Bun                                                                       |
+| `AUDIT_DB`        | `data/audit.db` (local), `/tmp/idcard-audit.db` (Vercel)            | พาธไฟล์ SQLite ของ audit log                                                       |
 | `AUDIT_SALT`      | สุ่มใหม่ทุก process                                                     | salt สำหรับแฮชเลขบัตร — ตั้งค่าเพื่อให้แฮชเทียบข้ามการรีสตาร์ทได้ (ค่าว่างถือว่าไม่ได้ตั้ง)            |
-| `ALLOWED_ORIGINS` | `http://<HOST>:<PORT>`, `http://localhost:<PORT>`, และ Vite `:5173` | รายการ Origin ที่อนุญาตให้เปิด WebSocket (คั่นด้วย comma) — ถ้าตั้ง จะ **แทนที่** ค่าเริ่มต้นทั้งหมด |
+| `ALLOWED_ORIGINS` | local: loopback + Vite `:5173`; Vercel: `https://<deployment host>` | รายการ Origin ที่อนุญาตให้เปิด WebSocket (คั่นด้วย comma) — ถ้าตั้ง จะ **แทนที่** ค่าเริ่มต้นทั้งหมด |
 
 ตัวอย่าง:
 
@@ -80,6 +80,27 @@ AUDIT_SALT="$(openssl rand -hex 32)" bun run start
 
 ค่า salt ไม่ถูกเขียนลงฐานข้อมูล ถ้าไม่ตั้ง `AUDIT_SALT` ทุกครั้งที่รีสตาร์ทแฮชของบัตรเดียวกันจะเปลี่ยน
 (ยอมแลกความต่อเนื่องเพื่อความเป็นส่วนตัว)
+
+---
+
+## Deploy บน Vercel (Container)
+
+โปรเจกต์มี `Dockerfile` ที่ root และ `vercel.json` ที่ตั้ง `"framework": "container"` เพื่อบังคับให้ Vercel ใช้ Container preset (ไม่ให้ Vite preset ชนะ)
+
+```bash
+bunx vercel login
+bunx vercel link
+bunx vercel --prod
+```
+
+สิ่งที่ต้องรู้ก่อน deploy:
+
+- **อ่านบัตรไม่ได้บน Vercel** — container เป็น Linux ไม่มี `PCSC.framework`, ไดรเวอร์ PC/SC หรือเครื่องอ่าน USB ที่ผูกกับเครื่องของคุณ เซิร์ฟเวอร์จะจับ error ตอนโหลดไลบรารีแล้วเข้าสู่โหมด `no-reader` แทนการ crash หน้าเว็บและ history ยังเปิดได้ แต่การอ่านบัตรต้องรันบนเครื่องที่มีเครื่องอ่าน
+- **พอร์ต/ที่อยู่** — container bind `0.0.0.0:80` ตามที่ Vercel route ให้ `main.ts` เลือกค่านี้ให้เองเมื่อเจอ `VERCEL_URL` จึงไม่ต้องตั้ง `HOST`/`PORT`
+- **Origin** — บน Vercel ค่าเริ่มต้นสร้างจาก `VERCEL_URL`, `VERCEL_BRANCH_URL` และ `VERCEL_PROJECT_PRODUCTION_URL` เป็น `https://...` และ **ไม่รวม localhost** ถ้าใช้ custom domain ต้องเพิ่มใน `ALLOWED_ORIGINS` เช่น `ALLOWED_ORIGINS=https://id.example.com`
+- **Audit log ไม่ถาวร** — `AUDIT_DB=/tmp/idcard-audit.db`; `/tmp` หายเมื่อ instance ถูก recycle และแต่ละ instance แยกฐานข้อมูลกัน ถ้าต้องการ history จริงต้องใช้ฐานข้อมูลภายนอก
+- **WebSocket มีอายุ** — Vercel Functions ปิด connection เมื่อถึง max duration (Hobby 300 วินาที) client มี reconnect backoff อยู่แล้ว แต่การอ่านที่กำลังทำอยู่อาจถูกตัด
+- ตั้ง `AUDIT_SALT` ใน project environment เพื่อให้ hash คงที่ข้ามการรีสตาร์ท
 
 ---
 
@@ -124,7 +145,8 @@ PCSC.framework ──► เครื่องอ่าน ──► บัต�
 - [x] audit เก็บเฉพาะ `cid_hash` (salted SHA-256) + metadata; หน้าเว็บเห็นแค่ 8 ตัวแรก
 - [x] ไม่มี `console.log(card)` ในโค้ด และไม่มี `console.*` ที่พิมพ์ค่าฟิลด์ของบัตร (มี test ตรวจ)
 - [x] สคริปต์ใน `spike/` พิมพ์เฉพาะข้อเท็จจริงเชิงโครงสร้าง (ความยาว, true/false) ไม่พิมพ์ค่าฟิลด์
-- [x] WebSocket bind `127.0.0.1` + ตรวจ `Origin` allowlist
+- [x] WebSocket bind loopback เมื่อรันบนเครื่อง และ `0.0.0.0` ใน container พร้อมตรวจ `Origin` allowlist
+- [x] บน Vercel ไม่มีเครื่องอ่านบัตร จึงไม่มีข้อมูลบัตรจริงไหลผ่าน deployment
 - [x] ไม่มี CORS wildcard
 - [x] `data/` อยู่ใน `.gitignore`
 - [x] README ระบุชัดว่านี่คือเดโม ไม่ใช่ระบบสำหรับใช้งานจริง
@@ -140,7 +162,8 @@ PCSC.framework ──► เครื่องอ่าน ──► บัต�
 
 - รองรับเครื่องอ่านเครื่องเดียวและผู้ใช้คนเดียว
 - ไม่มีระบบ login — ใครก็ตามที่เข้าถึง `127.0.0.1:3000` บนเครื่องนี้ได้จะเห็นข้อมูลบัตรที่เสียบอยู่
-- การเชื่อมต่อเป็น HTTP/WS ธรรมดา ไม่มี TLS (อาศัยการ bind loopback เท่านั้น)
+- การเชื่อมต่อ local เป็น HTTP/WS ธรรมดา ไม่มี TLS (อาศัยการ bind loopback เท่านั้น); บน Vercel ใช้ TLS ของแพลตฟอร์ม
+- บน Vercel อ่านบัตรไม่ได้เพราะไม่มี PC/SC และ USB reader — ใช้ได้เฉพาะ UI กับ history ที่ไม่ถาวร
 - ถ้าโปรแกรมอื่น (เช่น ระบบยืนยันตัวตนของ macOS) ถือบัตรอยู่ จะได้ `SHARING_VIOLATION`
 - ตาราง offset ของ CDE อ้างอิงบัตรรุ่นปี 2567 — บัตรรุ่นอื่นอาจต้องแก้ค่าคงที่ใน `src/server/cde.ts`
 - ไม่มี retry อัตโนมัติเมื่ออ่านพลาดจากสาเหตุที่ไม่ใช่การถอดบัตร — ผู้ใช้กด "ลองอีกครั้ง" เอง
@@ -192,6 +215,9 @@ src/
     styles.css           design tokens, light/dark, responsive
 tests/                   การทดสอบทั้งหมดรันได้โดยไม่ต้องมี hardware
 spike/                   สคริปต์ทดลองอ่านบัตร (รันมือ ไม่ถูก import โดยแอป; พิมพ์เฉพาะข้อเท็จจริงเชิงโครงสร้าง)
+Dockerfile               image สำหรับ Vercel Container (linux/amd64)
+.dockerignore            กัน node_modules/dist/data ออกจาก build context
+vercel.json              บังคับ framework เป็น container
 ```
 
 การ import ข้ามโฟลเดอร์ใช้ subpath imports ที่ประกาศไว้ใน `package.json`:
@@ -213,7 +239,7 @@ spike/                   สคริปต์ทดลองอ่านบั�
 ## การทดสอบ
 
 ```bash
-bun test          # 161 tests
+bun test          # 168 tests
 bun run typecheck
 bun run lint
 bun run fmt:check

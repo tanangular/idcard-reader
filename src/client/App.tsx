@@ -33,7 +33,7 @@ export function App() {
                 </span>
                 <span class="brand__text">
                   <span class="brand__title">อ่านบัตรประชาชน</span>
-                  <span class="brand__sub">เดโมบนเครื่องของคุณ</span>
+                  <span class="brand__sub">เดโมอ่านบัตรประชาชน</span>
                 </span>
               </a>
 
@@ -54,7 +54,7 @@ export function App() {
           </main>
 
           <footer class="app-footer">
-            ข้อมูลบัตรประมวลผลบนเครื่องนี้เท่านั้น · เดโมสำหรับสาธิต ไม่ใช่ระบบสำหรับใช้งานจริง
+            ข้อมูลบัตรไม่ถูกจัดเก็บถาวร · เดโมสำหรับสาธิต ไม่ใช่ระบบสำหรับใช้งานจริง
           </footer>
         </div>
       )}

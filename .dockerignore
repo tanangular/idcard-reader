@@ -1,0 +1,16 @@
+.git
+.vercel
+.idea
+.superpowers
+node_modules
+dist
+data
+tests
+spike
+coverage
+*.db
+*.log
+.env
+.env.*
+.DS_Store
+PLAN.md

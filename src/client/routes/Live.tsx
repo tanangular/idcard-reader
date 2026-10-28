@@ -21,7 +21,22 @@ function ConnectingPanel() {
   );
 }
 
+const IS_LOCAL =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost");
+
 function NoReaderPanel() {
+  if (!IS_LOCAL) {
+    return (
+      <section class="panel idle" aria-labelledby="no-reader-title">
+        <div class="idle-card idle-card--ghost idle-card--off" aria-hidden="true" />
+        <h2 id="no-reader-title">เดโมนี้ไม่มีเครื่องอ่านบัตร</h2>
+        <p>เวอร์ชันบน Vercel รันใน container ที่ไม่มี USB reader จึงอ่านบัตรไม่ได้</p>
+        <p class="idle__note">หากต้องการทดลองอ่านบัตรจริง ให้รันโปรเจกต์บนเครื่อง macOS ที่มีเครื่องอ่านบัตร</p>
+      </section>
+    );
+  }
+
   return (
     <section class="panel idle" aria-labelledby="no-reader-title">
       <div class="idle-card idle-card--ghost idle-card--off" aria-hidden="true" />
@@ -42,7 +57,7 @@ function WaitingCardPanel() {
       <div class="idle-card idle-card--waiting" aria-hidden="true" />
       <h2 id="waiting-title">เสียบบัตรประชาชนเพื่อเริ่มอ่าน</h2>
       <p>ระบบจะอ่านข้อมูลและแสดงรูปถ่ายบนหน้าจอโดยอัตโนมัติ เมื่อถอดบัตร ข้อมูลจะถูกล้างทันที</p>
-      <p class="idle__note">ข้อมูลบัตรอยู่ในหน่วยความจำของเซิร์ฟเวอร์บนเครื่องนี้เท่านั้น</p>
+      <p class="idle__note">ข้อมูลบัตรอยู่ในหน่วยความจำของเซิร์ฟเวอร์ที่รันแอปนี้เท่านั้น</p>
     </section>
   );
 }
