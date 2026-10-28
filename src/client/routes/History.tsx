@@ -10,7 +10,12 @@ import { ClientError, getClient } from "../ws";
 
 const PAGE_SIZE = 20;
 
-function EmptyHistory(props: { loading: boolean; loaded: boolean }) {
+function EmptyHistory(props: {
+  loading: boolean;
+  loaded: boolean;
+  connected: boolean;
+  failed: boolean;
+}) {
   return (
     <div class="empty">
       <Show
@@ -19,10 +24,28 @@ function EmptyHistory(props: { loading: boolean; loaded: boolean }) {
           <Show
             when={props.loaded}
             fallback={
-              <>
-                <h2>กำลังเชื่อมต่อ…</h2>
-                <p>รอการเชื่อมต่อกับเซิร์ฟเวอร์เพื่อโหลดประวัติ</p>
-              </>
+              <Show
+                when={props.connected}
+                fallback={
+                  <>
+                    <h2>กำลังเชื่อมต่อ…</h2>
+                    <p>รอการเชื่อมต่อกับเซิร์ฟเวอร์เพื่อโหลดประวัติ</p>
+                  </>
+                }
+              >
+                <Show
+                  when={props.failed}
+                  fallback={
+                    <>
+                      <h2>ยังไม่มีประวัติการอ่าน</h2>
+                      <p>เมื่อมีการอ่านบัตร รายการจะปรากฏที่นี่</p>
+                    </>
+                  }
+                >
+                  <h2>โหลดประวัติไม่สำเร็จ</h2>
+                  <p>กด "ลองอีกครั้ง" ด้านบนเพื่อโหลดใหม่</p>
+                </Show>
+              </Show>
             }
           >
             <h2>ยังไม่มีประวัติการอ่าน</h2>
@@ -78,13 +101,18 @@ export function History() {
         return;
       }
 
+      // Removing rows elsewhere can strand the viewer on an empty last page.
+      // Switch first and let the effect fetch it: committing out-of-range
+      // rows would flash an empty page before the clamp lands.
+      const lastPage = Math.max(0, Math.ceil(reply.total / PAGE_SIZE) - 1);
+      if (target > lastPage) {
+        setPage(lastPage);
+        return;
+      }
+
       setRows(reply.rows);
       setTotal(reply.total);
       setLoaded(true);
-
-      // Removing rows elsewhere can strand the viewer on an empty last page.
-      const lastPage = Math.max(0, Math.ceil(reply.total / PAGE_SIZE) - 1);
-      if (target > lastPage) setPage(lastPage);
     } catch (caught) {
       if (mine !== generation) return;
       setError(
@@ -157,7 +185,14 @@ export function History() {
       <div class="table-card">
         <Show
           when={rows().length > 0}
-          fallback={<EmptyHistory loading={loading()} loaded={loaded()} />}
+          fallback={
+            <EmptyHistory
+              loading={loading()}
+              loaded={loaded()}
+              connected={client.connected()}
+              failed={error() !== null}
+            />
+          }
         >
           <div class="table-scroll" role="region" aria-label="ตารางประวัติการอ่านบัตร" tabindex="0">
             <table>

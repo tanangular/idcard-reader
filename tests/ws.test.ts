@@ -293,6 +293,26 @@ describe("requests", () => {
     await expect(readers).resolves.toMatchObject({ type: "readers.list", readers: ["A"] });
   });
 
+  test("ignores a reply with an unknown id and still resolves the real request", async () => {
+    const { client, sockets } = harness();
+    client.connect();
+    sockets[0]!.open();
+
+    const pending = client.listReaders();
+    const frame = JSON.parse(sockets[0]!.sent[0]!) as { id: string };
+
+    sockets[0]!.message({
+      id: "c999",
+      type: "readers.list",
+      ok: true,
+      readers: ["stale"],
+    });
+    expect(client.readers()).toEqual([]);
+
+    sockets[0]!.message({ id: frame.id, type: "readers.list", ok: true, readers: ["A"] });
+    await expect(pending).resolves.toMatchObject({ readers: ["A"] });
+  });
+
   test("rejects a request made before the socket is open", async () => {
     const { client } = harness();
 
