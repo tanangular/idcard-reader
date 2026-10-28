@@ -33,9 +33,15 @@ try {
   const photoBytes = Buffer.from(card.photo.dataUrl.split(",")[1]!, "base64").length;
 
   console.log(`\nelapsed    : ${elapsed} ms`);
-  console.log(`citizenId  : ${"*".repeat(11)}${card.citizenId.slice(-2)} (${card.citizenId.length} digits)`);
-  console.log(`nameTh     : ${card.nameTh.prefix} ${card.nameTh.firstName.slice(0, 1)}… (${card.nameTh.firstName.length}/${card.nameTh.lastName.length} chars)`);
-  console.log(`nameEn     : ${card.nameEn ? `${card.nameEn.prefix} ${card.nameEn.firstName.slice(0, 1)}…` : "absent"}`);
+  console.log(
+    `citizenId  : ${"*".repeat(11)}${card.citizenId.slice(-2)} (${card.citizenId.length} digits)`,
+  );
+  console.log(
+    `nameTh     : ${card.nameTh.prefix} ${card.nameTh.firstName.slice(0, 1)}… (${card.nameTh.firstName.length}/${card.nameTh.lastName.length} chars)`,
+  );
+  console.log(
+    `nameEn     : ${card.nameEn ? `${card.nameEn.prefix} ${card.nameEn.firstName.slice(0, 1)}…` : "absent"}`,
+  );
   console.log(`dateOfBirth: ${card.dateOfBirth}`);
   console.log(`sex        : ${card.sex}`);
   console.log(`issuer     : ${card.issuer}`);

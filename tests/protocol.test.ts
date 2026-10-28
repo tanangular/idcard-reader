@@ -13,7 +13,9 @@ describe("parseClientMsg", () => {
   });
 
   test("accepts history.list with valid paging", () => {
-    const res = parseClientMsg(JSON.stringify({ id: "3", type: "history.list", limit: 20, offset: 40 }));
+    const res = parseClientMsg(
+      JSON.stringify({ id: "3", type: "history.list", limit: 20, offset: 40 }),
+    );
     expect(res).toEqual({
       ok: true,
       msg: { id: "3", type: "history.list", limit: 20, offset: 40 },
@@ -48,14 +50,18 @@ describe("parseClientMsg", () => {
 
   test("rejects history.list limit outside 1..MAX", () => {
     for (const limit of [0, -1, MAX_HISTORY_LIMIT + 1, 1.5]) {
-      const res = parseClientMsg(JSON.stringify({ id: "1", type: "history.list", limit, offset: 0 }));
+      const res = parseClientMsg(
+        JSON.stringify({ id: "1", type: "history.list", limit, offset: 0 }),
+      );
       expect(res.ok).toBe(false);
     }
   });
 
   test("rejects negative or fractional offset", () => {
     for (const offset of [-1, 0.5]) {
-      const res = parseClientMsg(JSON.stringify({ id: "1", type: "history.list", limit: 10, offset }));
+      const res = parseClientMsg(
+        JSON.stringify({ id: "1", type: "history.list", limit: 10, offset }),
+      );
       expect(res.ok).toBe(false);
     }
   });

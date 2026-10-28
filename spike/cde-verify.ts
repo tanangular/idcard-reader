@@ -6,7 +6,9 @@
 import { CDE, parseCde } from "../src/server/cde.ts";
 import { formatAtr, Pcsc } from "../src/server/pcsc.ts";
 
-const SELECT = new Uint8Array([0x00, 0xa4, 0x04, 0x00, 0x08, 0xa0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01]);
+const SELECT = new Uint8Array([
+  0x00, 0xa4, 0x04, 0x00, 0x08, 0xa0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01,
+]);
 
 const pcsc = new Pcsc();
 
@@ -55,30 +57,42 @@ try {
 
   const card = parseCde((offset, length) => read(handle, offset, length));
 
-  const mask = (s: string) => (s.length <= 2 ? "*".repeat(s.length) : "*".repeat(s.length - 2) + s.slice(-2));
+  const mask = (s: string) =>
+    s.length <= 2 ? "*".repeat(s.length) : "*".repeat(s.length - 2) + s.slice(-2);
   const shape = (s: string) => `${s.length} chars, all-thai-prefix=${/^[\u0e00-\u0e7f]/.test(s)}`;
 
-  console.log(`\ncitizenId  : ${mask(card.citizenId)} (13 digits: ${/^\d{13}$/.test(card.citizenId)})`);
-  console.log(`nameTh     : prefix="${card.nameTh.prefix}" ${shape(card.nameTh.firstName)}, middle=${card.nameTh.middleName === null ? "none" : shape(card.nameTh.middleName)}, last=${shape(card.nameTh.lastName)}`);
-  console.log(`nameEn     : ${card.nameEn === null ? "absent" : `prefix="${card.nameEn.prefix}" first=${shape(card.nameEn.firstName)} last=${shape(card.nameEn.lastName)}`}`);
+  console.log(
+    `\ncitizenId  : ${mask(card.citizenId)} (13 digits: ${/^\d{13}$/.test(card.citizenId)})`,
+  );
+  console.log(
+    `nameTh     : prefix="${card.nameTh.prefix}" ${shape(card.nameTh.firstName)}, middle=${card.nameTh.middleName === null ? "none" : shape(card.nameTh.middleName)}, last=${shape(card.nameTh.lastName)}`,
+  );
+  console.log(
+    `nameEn     : ${card.nameEn === null ? "absent" : `prefix="${card.nameEn.prefix}" first=${shape(card.nameEn.firstName)} last=${shape(card.nameEn.lastName)}`}`,
+  );
   console.log(`dateOfBirth: ${card.dateOfBirth}`);
   console.log(`sex        : ${card.sex}`);
   console.log(`issuer     : ${card.issuer}`);
   console.log(`issueDate  : ${card.issueDate}`);
   console.log(`expireDate : ${card.expireDate}`);
-  console.log(`address    : ${card.address.length} chars, starts with thai=${/^[\u0e00-\u0e7f0-9]/.test(card.address)}`);
+  console.log(
+    `address    : ${card.address.length} chars, starts with thai=${/^[\u0e00-\u0e7f0-9]/.test(card.address)}`,
+  );
 
   // Raw field sizing: how many bytes are actually used before padding.
   const used = (offset: number, length: number) => {
     const bytes = read(handle, offset, length);
     let end = bytes.length;
-    while (end > 0 && (bytes[end - 1] === 0 || bytes[end - 1] === 0x20 || bytes[end - 1] === 0x23)) end--;
+    while (end > 0 && (bytes[end - 1] === 0 || bytes[end - 1] === 0x20 || bytes[end - 1] === 0x23))
+      end--;
     return end;
   };
 
   console.log("\nraw field usage:");
   for (const [name, cde] of Object.entries(CDE)) {
-    console.log(`  ${name.padEnd(12)} @0x${cde.offset.toString(16).padStart(4, "0")} len=${cde.length} used=${used(cde.offset, cde.length)}`);
+    console.log(
+      `  ${name.padEnd(12)} @0x${cde.offset.toString(16).padStart(4, "0")} len=${cde.length} used=${used(cde.offset, cde.length)}`,
+    );
   }
 } finally {
   pcsc.disconnect(handle);

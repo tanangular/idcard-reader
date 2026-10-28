@@ -55,7 +55,14 @@ console.log(`reader    = ${reader}`);
 
 const card: [bigint] = [0n];
 const proto: [number] = [0];
-const rcConnect = SCardConnect(hContext, reader, SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0, card, proto);
+const rcConnect = SCardConnect(
+  hContext,
+  reader,
+  SCARD_SHARE_SHARED,
+  SCARD_PROTOCOL_T0,
+  card,
+  proto,
+);
 console.log(`SCardConnect -> ${hex(rcConnect)} (hCard=${card[0]}, proto=${proto[0]})`);
 if (rcConnect !== 0) process.exit(1);
 const hCard = card[0];
@@ -89,15 +96,21 @@ function sw(buf: Buffer): number {
 }
 
 // SELECT Thai ID applet: 00 A4 04 00 08 A0 00 00 00 54 48 00 01
-const SELECT = new Uint8Array([0x00, 0xa4, 0x04, 0x00, 0x08, 0xa0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01]);
+const SELECT = new Uint8Array([
+  0x00, 0xa4, 0x04, 0x00, 0x08, 0xa0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01,
+]);
 let res = transmit(SELECT);
-console.log(`\nSELECT applet -> SW=${sw(res).toString(16).toUpperCase().padStart(4, "0")} (${res.length} bytes)`);
+console.log(
+  `\nSELECT applet -> SW=${sw(res).toString(16).toUpperCase().padStart(4, "0")} (${res.length} bytes)`,
+);
 
 // If 61 XX, GET RESPONSE
 if ((sw(res) & 0xff00) === 0x6100) {
   const le = sw(res) & 0xff;
   res = transmit(new Uint8Array([0x00, 0xc0, 0x00, 0x00, le]));
-  console.log(`GET RESPONSE  -> SW=${sw(res).toString(16).toUpperCase().padStart(4, "0")} (${res.length} bytes)`);
+  console.log(
+    `GET RESPONSE  -> SW=${sw(res).toString(16).toUpperCase().padStart(4, "0")} (${res.length} bytes)`,
+  );
 }
 
 // READ citizen id: 80 B0 00 04 02 00 0D

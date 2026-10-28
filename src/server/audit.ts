@@ -76,8 +76,7 @@ export class AuditLog {
   private readonly count: ReturnType<Database["query"]>;
 
   constructor(options: AuditLogOptions) {
-    this.salt =
-      options.salt ?? process.env["AUDIT_SALT"] ?? randomBytes(32).toString("hex");
+    this.salt = options.salt ?? process.env["AUDIT_SALT"] ?? randomBytes(32).toString("hex");
 
     if (options.path !== ":memory:") {
       mkdirSync(dirname(options.path), { recursive: true });

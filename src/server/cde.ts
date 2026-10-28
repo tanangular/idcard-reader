@@ -179,8 +179,7 @@ function parseCitizenId(raw: string): string {
 export type CdeReader = (offset: number, length: number) => Uint8Array;
 
 export function parseCde(read: CdeReader): ParsedCard {
-  const field = (name: CdeField): Uint8Array =>
-    read(CDE[name].offset, CDE[name].length);
+  const field = (name: CdeField): Uint8Array => read(CDE[name].offset, CDE[name].length);
 
   const citizenId = parseCitizenId(decodeAscii(field("citizenId"), "citizenId"));
 

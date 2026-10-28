@@ -50,7 +50,9 @@ function reportStatus(pcsc: Pcsc, reader: string): void {
     console.log(`  card       : ${statusHasCard(status) ? "present" : "absent"}`);
   } catch (error) {
     if (error instanceof PcscError) {
-      console.log(`  error      : ${error.app.code} (${error.app.pcscCode ?? error.app.sw ?? "-"}) — ${error.app.message}`);
+      console.log(
+        `  error      : ${error.app.code} (${error.app.pcscCode ?? error.app.sw ?? "-"}) — ${error.app.message}`,
+      );
     } else {
       throw error;
     }

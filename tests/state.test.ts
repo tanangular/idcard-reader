@@ -170,7 +170,11 @@ describe("CardService", () => {
 
     expect(service.getState()).toMatchObject({ phase: "waiting-card", card: null, error: null });
     expect(messages).toContainEqual({ type: "card.removed", reader: "Fake Reader" });
-    expect(messages).toContainEqual({ type: "reader.state", state: "waiting-card", readers: ["Fake Reader"] });
+    expect(messages).toContainEqual({
+      type: "reader.state",
+      state: "waiting-card",
+      readers: ["Fake Reader"],
+    });
   });
 
   test("drops the snapshot when the reader is unplugged", async () => {

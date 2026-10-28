@@ -185,7 +185,9 @@ function loadApi(): PcscApi {
     establishContext: lib.func(
       "long SCardEstablishContext(uint32_t dwScope, void *pvReserved1, void *pvReserved2, _Out_ intptr_t *phContext)",
     ) as unknown as EstablishContext,
-    releaseContext: lib.func("long SCardReleaseContext(intptr_t hContext)") as unknown as ReleaseContext,
+    releaseContext: lib.func(
+      "long SCardReleaseContext(intptr_t hContext)",
+    ) as unknown as ReleaseContext,
     listReaders: lib.func(
       "long SCardListReaders(intptr_t hContext, const char *mszGroups, _Out_ uint8_t *mszReaders, _Inout_ uint32_t *pcchReaders)",
     ) as unknown as ListReaders,
@@ -211,7 +213,7 @@ function loadApi(): PcscApi {
 }
 
 function check(rc: number): void {
-  if ((rc >>> 0) !== PCSC.SCARD_S_SUCCESS) {
+  if (rc >>> 0 !== PCSC.SCARD_S_SUCCESS) {
     throw new PcscError(decodePcscError(rc));
   }
 }
@@ -239,7 +241,7 @@ export class Pcsc implements PcscPort {
 
     const rc = this.api.listReaders(hContext, null, null, needed);
     // SCARD_E_NO_READERS_AVAILABLE is a normal state, not a failure.
-    if ((rc >>> 0) === PCSC.SCARD_E_NO_READERS_AVAILABLE) return [];
+    if (rc >>> 0 === PCSC.SCARD_E_NO_READERS_AVAILABLE) return [];
     check(rc);
 
     if (needed[0] === 0) return [];
@@ -255,11 +257,25 @@ export class Pcsc implements PcscPort {
     const card: [bigint] = [0n];
     const protocol: [number] = [0];
 
-    let rc = this.api.connect(hContext, reader, SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0, card, protocol);
+    let rc = this.api.connect(
+      hContext,
+      reader,
+      SCARD_SHARE_SHARED,
+      SCARD_PROTOCOL_T0,
+      card,
+      protocol,
+    );
 
     // Another process may be holding the card for a moment (CryptoTokenKit).
-    if ((rc >>> 0) === PCSC.SCARD_E_SHARING_VIOLATION) {
-      rc = this.api.connect(hContext, reader, SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0, card, protocol);
+    if (rc >>> 0 === PCSC.SCARD_E_SHARING_VIOLATION) {
+      rc = this.api.connect(
+        hContext,
+        reader,
+        SCARD_SHARE_SHARED,
+        SCARD_PROTOCOL_T0,
+        card,
+        protocol,
+      );
     }
 
     check(rc);
@@ -276,7 +292,9 @@ export class Pcsc implements PcscPort {
 
     check(this.api.status(handle, nameBuf, nameLen, state, protocol, atrBuf, atrLen));
 
-    const reader = new TextDecoder("utf-8").decode(nameBuf.subarray(0, nameLen[0])).replace(/\0+$/, "");
+    const reader = new TextDecoder("utf-8")
+      .decode(nameBuf.subarray(0, nameLen[0]))
+      .replace(/\0+$/, "");
 
     return {
       state: state[0],
@@ -317,8 +335,8 @@ export class Pcsc implements PcscPort {
     ];
 
     const rc = this.api.getStatusChange(hContext, timeoutMs, states, states.length);
-    const timedOut = (rc >>> 0) === PCSC.SCARD_E_TIMEOUT;
-    if (!timedOut && (rc >>> 0) !== PCSC.SCARD_S_SUCCESS) {
+    const timedOut = rc >>> 0 === PCSC.SCARD_E_TIMEOUT;
+    if (!timedOut && rc >>> 0 !== PCSC.SCARD_S_SUCCESS) {
       throw new PcscError(decodePcscError(rc));
     }
 
@@ -328,7 +346,10 @@ export class Pcsc implements PcscPort {
     // On timeout the framework does not write dwEventState, so keep the
     // caller's state instead of reporting a bogus 0x00.
     if (timedOut) {
-      return { changed: false, status: { state: currentState, atr: new Uint8Array(), reader, protocol: 0 } };
+      return {
+        changed: false,
+        status: { state: currentState, atr: new Uint8Array(), reader, protocol: 0 },
+      };
     }
 
     return {

@@ -74,7 +74,9 @@ describe("parseCde", () => {
   });
 
   test("lays out a three-part Thai name without a middle name", () => {
-    const card = parseCde(readerFor(makeCardBuffer({ fields: { nameTh: tis620("นาง#สมหญิง#รักไทย#") } })));
+    const card = parseCde(
+      readerFor(makeCardBuffer({ fields: { nameTh: tis620("นาง#สมหญิง#รักไทย#") } })),
+    );
     expect(card.nameTh).toEqual({
       prefix: "นาง",
       firstName: "สมหญิง",
@@ -108,7 +110,9 @@ describe("parseCde", () => {
   });
 
   test("converts Buddhist Era years to Gregorian", () => {
-    const card = parseCde(readerFor(makeCardBuffer({ fields: { dateOfBirth: new TextEncoder().encode("25000101") } })));
+    const card = parseCde(
+      readerFor(makeCardBuffer({ fields: { dateOfBirth: new TextEncoder().encode("25000101") } })),
+    );
     expect(card.dateOfBirth).toBe("1957-01-01");
   });
 
@@ -127,7 +131,11 @@ describe("parseCde", () => {
 
   test("rejects an impossible date and names the field", () => {
     try {
-      parseCde(readerFor(makeCardBuffer({ fields: { dateOfBirth: new TextEncoder().encode("25301301") } })));
+      parseCde(
+        readerFor(
+          makeCardBuffer({ fields: { dateOfBirth: new TextEncoder().encode("25301301") } }),
+        ),
+      );
       throw new Error("expected a throw");
     } catch (error) {
       expect(error).toBeInstanceOf(CdeParseError);
@@ -137,13 +145,19 @@ describe("parseCde", () => {
 
   test("rejects a non-numeric date", () => {
     expect(() =>
-      parseCde(readerFor(makeCardBuffer({ fields: { issueDate: new TextEncoder().encode("2560-1-1") } }))),
+      parseCde(
+        readerFor(makeCardBuffer({ fields: { issueDate: new TextEncoder().encode("2560-1-1") } })),
+      ),
     ).toThrow(CdeParseError);
   });
 
   test("throws a CdeParseError whose message carries no card data", () => {
     try {
-      parseCde(readerFor(makeCardBuffer({ fields: { dateOfBirth: new TextEncoder().encode("00000000") } })));
+      parseCde(
+        readerFor(
+          makeCardBuffer({ fields: { dateOfBirth: new TextEncoder().encode("00000000") } }),
+        ),
+      );
       throw new Error("expected a throw");
     } catch (error) {
       expect(error).toBeInstanceOf(CdeParseError);

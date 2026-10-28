@@ -183,9 +183,7 @@ describe("AuditLog", () => {
     try {
       const log = new AuditLog({ path: ":memory:" });
       log.record(outcome());
-      expect(log.list(1, 0).rows[0]!.cidHashShort).toBe(
-        hashCitizenId(CID, "from-env").slice(0, 8),
-      );
+      expect(log.list(1, 0).rows[0]!.cidHashShort).toBe(hashCitizenId(CID, "from-env").slice(0, 8));
       log.close();
     } finally {
       if (previous === undefined) delete process.env["AUDIT_SALT"];
