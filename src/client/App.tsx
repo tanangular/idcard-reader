@@ -1,7 +1,7 @@
 import { createRouter } from "@solidjs/router";
-import { History } from "./routes/History";
-import { Live } from "./routes/Live";
-import { getClient } from "./ws";
+import { History } from "#client/routes/History.tsx";
+import { Live } from "#client/routes/Live.tsx";
+import { getClient } from "#client/ws.ts";
 
 const routes = [
   { path: "/", component: Live },

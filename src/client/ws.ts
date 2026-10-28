@@ -17,7 +17,7 @@ import type {
   ReaderState,
   ServerMsg,
   ThaiIdCard,
-} from "../shared/protocol.ts";
+} from "#shared/protocol.ts";
 
 /** The slice of the browser WebSocket this client uses. */
 export interface SocketLike {

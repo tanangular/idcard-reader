@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { appError } from "../src/server/errors.ts";
+import { appError } from "#server/errors.ts";
 import {
   createApp,
   createHub,
@@ -13,9 +13,9 @@ import {
   type AppOptions,
   type CardSource,
   type HistorySource,
-} from "../src/server/server.ts";
-import type { CardState, ReadResult } from "../src/server/state.ts";
-import type { AuditRow, ServerMsg, ThaiIdCard } from "../src/shared/protocol.ts";
+} from "#server/server.ts";
+import type { CardState, ReadResult } from "#server/state.ts";
+import type { AuditRow, ServerMsg, ThaiIdCard } from "#shared/protocol.ts";
 
 const CARD: ThaiIdCard = {
   citizenId: "1101700203456",

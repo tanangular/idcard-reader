@@ -194,6 +194,18 @@ tests/                   การทดสอบทั้งหมดรัน�
 spike/                   สคริปต์ทดลองอ่านบัตร (รันมือ ไม่ถูก import โดยแอป; พิมพ์เฉพาะข้อเท็จจริงเชิงโครงสร้าง)
 ```
 
+การ import ข้ามโฟลเดอร์ใช้ subpath imports ที่ประกาศไว้ใน `package.json`:
+
+```json
+"imports": {
+  "#server/*": "./src/server/*",
+  "#client/*": "./src/client/*",
+  "#shared/*": "./src/shared/*"
+}
+```
+
+เช่น `#server/state.ts`, `#client/ws.ts`, `#shared/protocol.ts` — ต้องระบุนามสกุลไฟล์ เพราะ target เป็น wildcard ตรง ๆ ส่วน import ภายในโฟลเดอร์เดียวกันยังใช้ relative ตามเดิม การแมปชุดนี้ใช้ร่วมกันโดย Bun, Vite และ TypeScript โดยไม่ต้องมี `paths` ใน `tsconfig.json`
+
 ---
 
 ## การทดสอบ

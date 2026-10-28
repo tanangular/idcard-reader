@@ -25,7 +25,7 @@ import type {
   ReaderState,
   ServerMsg,
   ThaiIdCard,
-} from "../shared/protocol.ts";
+} from "#shared/protocol.ts";
 
 /** The reader is a function so tests can supply a card without bytes. */
 export type CardReader = typeof readThaiIdCard;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { decodePcscError, formatPcscCode } from "../src/server/errors.ts";
-import { formatAtr, parseReaderList } from "../src/server/pcsc.ts";
+import { decodePcscError, formatPcscCode } from "#server/errors.ts";
+import { formatAtr, parseReaderList } from "#server/pcsc.ts";
 
 describe("parseReaderList", () => {
   test("returns an empty array for an empty block", () => {

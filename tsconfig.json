@@ -21,11 +21,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "allowImportingTsExtensions": true,
-
-    "paths": {
-      "~/*": ["./src/*"]
-    }
+    "allowImportingTsExtensions": true
   },
   "include": ["src", "tests", "spike", "vite.config.ts"]
 }

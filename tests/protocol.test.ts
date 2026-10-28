@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MAX_HISTORY_LIMIT, parseClientMsg } from "../src/shared/protocol.ts";
+import { MAX_HISTORY_LIMIT, parseClientMsg } from "#shared/protocol.ts";
 
 describe("parseClientMsg", () => {
   test("accepts readers.list", () => {

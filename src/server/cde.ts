@@ -25,7 +25,7 @@
  *   0x1579 160   address       (TIS-620, '#' marks a line break)
  */
 import iconv from "iconv-lite";
-import type { PersonName, Sex } from "../shared/protocol.ts";
+import type { PersonName, Sex } from "#shared/protocol.ts";
 
 export const CDE = {
   citizenId: { offset: 0x0004, length: 13 },

@@ -3,9 +3,9 @@
  * server's state machine plus the browser's socket state; no local guessing.
  */
 import { Show } from "solid-js";
-import type { AppError, ReaderState } from "../../shared/protocol.ts";
-import { PROGRESS_STEPS } from "../format.ts";
-import type { Progress } from "../ws.ts";
+import type { AppError, ReaderState } from "#shared/protocol.ts";
+import { PROGRESS_STEPS } from "#client/format.ts";
+import type { Progress } from "#client/ws.ts";
 
 export interface StatusBarProps {
   connected: boolean;

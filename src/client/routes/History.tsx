@@ -4,9 +4,9 @@
  * fields never reach it.
  */
 import { For, Show, createEffect, createSignal, onSettled } from "solid-js";
-import type { AuditRow } from "../../shared/protocol.ts";
-import { formatDateTime, formatDuration, formatHash } from "../format.ts";
-import { ClientError, getClient } from "../ws";
+import type { AuditRow } from "#shared/protocol.ts";
+import { formatDateTime, formatDuration, formatHash } from "#client/format.ts";
+import { ClientError, getClient } from "#client/ws.ts";
 
 const PAGE_SIZE = 20;
 

@@ -5,7 +5,7 @@
  *
  * No function here logs, stores or transmits its input.
  */
-import type { PersonName, ProgressStep, Sex } from "../shared/protocol.ts";
+import type { PersonName, ProgressStep, Sex } from "#shared/protocol.ts";
 
 /** The card reports years in the Buddhist Era; the UI shows BE years too. */
 const BUDDHIST_ERA_OFFSET = 543;

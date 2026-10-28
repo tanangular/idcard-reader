@@ -8,7 +8,7 @@
  */
 import { PHOTO, parseCde, type CdeReader } from "./cde.ts";
 import { appError, decodeStatusWord, PcscError } from "./errors.ts";
-import type { ProgressStep, ThaiIdCard } from "../shared/protocol.ts";
+import type { ProgressStep, ThaiIdCard } from "#shared/protocol.ts";
 
 /** SELECT the Thai ID applet. */
 const SELECT_APPLET = new Uint8Array([

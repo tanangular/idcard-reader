@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { appError, PcscError } from "../src/server/errors.ts";
-import type { PcscHandle, PcscPort, ReaderChange, ReaderStatus } from "../src/server/pcsc.ts";
-import { CardService, type CardReader, type ReadOutcome } from "../src/server/state.ts";
-import type { ServerMsg, ThaiIdCard } from "../src/shared/protocol.ts";
+import { appError, PcscError } from "#server/errors.ts";
+import type { PcscHandle, PcscPort, ReaderChange, ReaderStatus } from "#server/pcsc.ts";
+import { CardService, type CardReader, type ReadOutcome } from "#server/state.ts";
+import type { ServerMsg, ThaiIdCard } from "#shared/protocol.ts";
 
 const ATR = "3B 79 96 00 00 54 48 20 4E 49 44 20 31 37";
 const OTHER_ATR = "3B 79 96 00 00 54 48 20 4E 49 44 20 32 30";
