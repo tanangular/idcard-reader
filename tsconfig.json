@@ -20,13 +20,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "noEmit": true,
-
-    "paths": {
-      "#server/*": ["./src/server/*"],
-      "#client/*": ["./src/client/*"],
-      "#shared/*": ["./src/shared/*"]
-    }
+    "noEmit": true
   },
   "include": ["src", "tests", "spike", "vite.config.ts"]
 }

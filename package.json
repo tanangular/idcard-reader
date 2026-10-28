@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#server/*": "./src/server/*",
-    "#client/*": "./src/client/*",
-    "#shared/*": "./src/shared/*"
+    "#server/*": "./src/server/*.ts",
+    "#client/components/*": "./src/client/components/*.tsx",
+    "#client/routes/*": "./src/client/routes/*.tsx",
+    "#client/*": "./src/client/*.ts",
+    "#shared/*": "./src/shared/*.ts"
   },
   "scripts": {
     "dev": "bun run --parallel dev:server dev:client",

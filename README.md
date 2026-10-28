@@ -224,15 +224,19 @@ vercel.json              บังคับ framework เป็น container
 
 ```json
 "imports": {
-  "#server/*": "./src/server/*",
-  "#client/*": "./src/client/*",
-  "#shared/*": "./src/shared/*"
+  "#server/*": "./src/server/*.ts",
+  "#client/components/*": "./src/client/components/*.tsx",
+  "#client/routes/*": "./src/client/routes/*.tsx",
+  "#client/*": "./src/client/*.ts",
+  "#shared/*": "./src/shared/*.ts"
 }
 ```
 
-เช่น `#server/state`, `#client/ws`, `#shared/protocol` — ไม่ต้องใส่นามสกุลไฟล์ Bun และ Vite จะเติม `.ts`/`.tsx` ให้เอง ส่วน import ภายในโฟลเดอร์เดียวกันยังใช้ relative ตามเดิม
+เช่น `#server/state`, `#client/ws`, `#shared/protocol` — ฝั่งที่ import ยังไม่ต้องใส่นามสกุลไฟล์ แต่ target ใน `package.json` ต้องระบุนามสกุล `.ts`/`.tsx` เพราะ TypeScript resolve package imports จาก target ตรง ๆ และไม่เติมนามสกุลให้
 
-`tsconfig.json` มี `paths` สามรายการที่ตรงกับ `imports` ใช้เฉพาะตอน typecheck เพราะ TypeScript ไม่เติมนามสกุลให้ target ของ package imports แต่ตอน runtime ยังใช้ mapping จาก `package.json` เป็นหลัก
+`tsconfig.json` ไม่มี `paths` แล้ว — `package.json#imports` เป็นแหล่งความจริงเดียวทั้งตอน typecheck, test, dev และ build ส่วน import ภายในโฟลเดอร์เดียวกันยังใช้ relative ตามเดิม
+
+ไฟล์ `.tsx` แยก pattern ตามโฟลเดอร์ (`components/*`, `routes/*`) เพราะ pattern ที่ยาวที่สุดจะชนะ; Bun และ Vite resolve target ที่เป็น `.ts`/`.tsx` ได้โดยตรง
 
 ---
 
