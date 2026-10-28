@@ -6,10 +6,10 @@
  * dev/prod origins (or whatever ALLOWED_ORIGINS lists).
  */
 import { join } from "node:path";
-import { AuditLog } from "./audit.ts";
-import { Pcsc } from "./pcsc.ts";
-import { createApp, createHub, defaultAllowedOrigins } from "./server.ts";
-import { CardService } from "./state.ts";
+import { AuditLog } from "./audit";
+import { Pcsc } from "./pcsc";
+import { createApp, createHub, defaultAllowedOrigins } from "./server";
+import { CardService } from "./state";
 
 const HOST = process.env["HOST"] ?? "127.0.0.1";
 const PORT = Number(process.env["PORT"] ?? 3000);

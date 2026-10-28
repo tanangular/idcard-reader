@@ -10,7 +10,7 @@ import {
   formatThaiDateShort,
   formatThaiName,
   PROGRESS_STEPS,
-} from "#client/format.ts";
+} from "#client/format";
 
 /** A local Date, so the expected string is the same in every time zone. */
 const localIso = (y: number, m: number, d: number, h: number, min: number): string =>

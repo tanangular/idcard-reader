@@ -10,22 +10,16 @@
  * The PC/SC port and the reader are injected, so the whole machine is
  * exercised from a fake port in tests without hardware.
  */
-import { appError, PcscError } from "./errors.ts";
+import { appError, PcscError } from "./errors";
 import {
   eventStateHasCard,
   formatAtr,
   type PcscHandle,
   type PcscPort,
   type ReaderChange,
-} from "./pcsc.ts";
-import { readThaiIdCard } from "./thai-card.ts";
-import type {
-  AppError,
-  AppErrorCode,
-  ReaderState,
-  ServerMsg,
-  ThaiIdCard,
-} from "#shared/protocol.ts";
+} from "./pcsc";
+import { readThaiIdCard } from "./thai-card";
+import type { AppError, AppErrorCode, ReaderState, ServerMsg, ThaiIdCard } from "#shared/protocol";
 
 /** The reader is a function so tests can supply a card without bytes. */
 export type CardReader = typeof readThaiIdCard;

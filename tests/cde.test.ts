@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { CDE, CdeParseError, parseCde } from "#server/cde.ts";
-import { CARD_BYTES, FIXTURE_OFFSET, makeCardBuffer, put, tis620 } from "./fixtures/card.ts";
+import { CDE, CdeParseError, parseCde } from "#server/cde";
+import { CARD_BYTES, FIXTURE_OFFSET, makeCardBuffer, put, tis620 } from "./fixtures/card";
 
 function readerFor(buf: Uint8Array) {
   return (offset: number, length: number): Uint8Array => {

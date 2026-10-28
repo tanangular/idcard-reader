@@ -1,5 +1,5 @@
 import koffi from "koffi";
-import { decodePcscError, PcscError, PCSC } from "./errors.ts";
+import { decodePcscError, PcscError, PCSC } from "./errors";
 
 const PCSC_PATH = "/System/Library/Frameworks/PCSC.framework/PCSC";
 

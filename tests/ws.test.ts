@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { createCardClient, type SocketLike, type Timer } from "#client/ws.ts";
-import type { ServerMsg, ThaiIdCard } from "#shared/protocol.ts";
+import { createCardClient, type SocketLike, type Timer } from "#client/ws";
+import type { ServerMsg, ThaiIdCard } from "#shared/protocol";
 
 const CARD: ThaiIdCard = {
   citizenId: "1101700203456",

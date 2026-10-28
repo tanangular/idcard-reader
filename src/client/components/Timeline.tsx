@@ -4,8 +4,8 @@
  * order the card is actually traversed.
  */
 import { For } from "solid-js";
-import { PROGRESS_STEPS, progressIndex } from "#client/format.ts";
-import type { Progress } from "#client/ws.ts";
+import { PROGRESS_STEPS, progressIndex } from "#client/format";
+import type { Progress } from "#client/ws";
 
 function stepState(index: number, current: number): "done" | "current" | "pending" {
   if (index < current) return "done";

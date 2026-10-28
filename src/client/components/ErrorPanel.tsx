@@ -4,7 +4,7 @@
  * possible without opening the console.
  */
 import { Show } from "solid-js";
-import type { AppError } from "#shared/protocol.ts";
+import type { AppError } from "#shared/protocol";
 
 export interface ErrorPanelProps {
   error: AppError;

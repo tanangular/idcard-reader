@@ -5,7 +5,7 @@
  */
 import { Show } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import type { ThaiIdCard } from "#shared/protocol.ts";
+import type { ThaiIdCard } from "#shared/protocol";
 import {
   formatCitizenId,
   formatDateTime,
@@ -13,7 +13,7 @@ import {
   formatSex,
   formatThaiDate,
   formatThaiName,
-} from "#client/format.ts";
+} from "#client/format";
 import { Photo } from "./Photo";
 
 interface FieldProps {

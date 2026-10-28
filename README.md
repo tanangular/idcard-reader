@@ -204,7 +204,9 @@ spike/                   สคริปต์ทดลองอ่านบั�
 }
 ```
 
-เช่น `#server/state.ts`, `#client/ws.ts`, `#shared/protocol.ts` — ต้องระบุนามสกุลไฟล์ เพราะ target เป็น wildcard ตรง ๆ ส่วน import ภายในโฟลเดอร์เดียวกันยังใช้ relative ตามเดิม การแมปชุดนี้ใช้ร่วมกันโดย Bun, Vite และ TypeScript โดยไม่ต้องมี `paths` ใน `tsconfig.json`
+เช่น `#server/state`, `#client/ws`, `#shared/protocol` — ไม่ต้องใส่นามสกุลไฟล์ Bun และ Vite จะเติม `.ts`/`.tsx` ให้เอง ส่วน import ภายในโฟลเดอร์เดียวกันยังใช้ relative ตามเดิม
+
+`tsconfig.json` มี `paths` สามรายการที่ตรงกับ `imports` ใช้เฉพาะตอน typecheck เพราะ TypeScript ไม่เติมนามสกุลให้ target ของ package imports แต่ตอน runtime ยังใช้ mapping จาก `package.json` เป็นหลัก
 
 ---
 

@@ -6,8 +6,8 @@
  * address. If you extend it, keep it that way: this file runs against a real
  * card and its output can end up in a terminal log or a bug report.
  */
-import { CDE, parseCde } from "#server/cde.ts";
-import { formatAtr, Pcsc } from "#server/pcsc.ts";
+import { CDE, parseCde } from "#server/cde";
+import { formatAtr, Pcsc } from "#server/pcsc";
 
 const SELECT = new Uint8Array([
   0x00, 0xa4, 0x04, 0x00, 0x08, 0xa0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01,

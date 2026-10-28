@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { PcscError } from "#server/errors.ts";
-import { readThaiIdCard, type CardTransport } from "#server/thai-card.ts";
-import type { ProgressStep } from "#shared/protocol.ts";
-import { FIXTURE_OFFSET, makeCardBuffer, makePhoto } from "./fixtures/card.ts";
+import { PcscError } from "#server/errors";
+import { readThaiIdCard, type CardTransport } from "#server/thai-card";
+import type { ProgressStep } from "#shared/protocol";
+import { FIXTURE_OFFSET, makeCardBuffer, makePhoto } from "./fixtures/card";
 
 const ATR = "3B 79 96 00 00 54 48 20 4E 49 44 20 31 37";
 

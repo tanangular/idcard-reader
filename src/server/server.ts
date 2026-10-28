@@ -9,10 +9,10 @@
  */
 import { stat } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
-import { appError, PcscError } from "./errors.ts";
-import { parseClientMsg } from "#shared/protocol.ts";
-import type { AppError, AuditRow, ServerMsg } from "#shared/protocol.ts";
-import type { CardState, ReadResult } from "./state.ts";
+import { appError, PcscError } from "./errors";
+import { parseClientMsg } from "#shared/protocol";
+import type { AppError, AuditRow, ServerMsg } from "#shared/protocol";
+import type { CardState, ReadResult } from "./state";
 
 /** The ports the bundled client and the Vite dev server listen on. */
 const CLIENT_PORT = 3000;

@@ -1,12 +1,12 @@
 /**
  * Audit history. The only data here is the server's PII-free `AuditRow`;
- * the page cannot leak a name, address, birth date or photo because those
+ * the page cannot leak a name, address, birthdate or photo because those
  * fields never reach it.
  */
 import { For, Show, createEffect, createSignal, onSettled } from "solid-js";
-import type { AuditRow } from "#shared/protocol.ts";
-import { formatDateTime, formatDuration, formatHash } from "#client/format.ts";
-import { ClientError, getClient } from "#client/ws.ts";
+import type { AuditRow } from "#shared/protocol";
+import { formatDateTime, formatDuration, formatHash } from "#client/format";
+import { ClientError, getClient } from "#client/ws";
 
 const PAGE_SIZE = 20;
 

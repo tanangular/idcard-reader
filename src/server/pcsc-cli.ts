@@ -6,8 +6,8 @@
  *
  * Prints no card data — only reader names, PC/SC states and the ATR.
  */
-import { PcscError } from "./errors.ts";
-import { formatAtr, Pcsc, statusHasCard, type ReaderStatus } from "./pcsc.ts";
+import { PcscError } from "./errors";
+import { formatAtr, Pcsc, statusHasCard, type ReaderStatus } from "./pcsc";
 
 /** dwEventState bits (used after SCardGetStatusChange). */
 const EVENT_STATE_NAMES: ReadonlyArray<readonly [number, string]> = [

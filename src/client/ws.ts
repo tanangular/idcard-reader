@@ -11,13 +11,7 @@
  * socket and a fake clock — no server, no timers, no hardware.
  */
 import { createSignal, type Accessor } from "solid-js";
-import type {
-  AppError,
-  ProgressStep,
-  ReaderState,
-  ServerMsg,
-  ThaiIdCard,
-} from "#shared/protocol.ts";
+import type { AppError, ProgressStep, ReaderState, ServerMsg, ThaiIdCard } from "#shared/protocol";
 
 /** The slice of the browser WebSocket this client uses. */
 export interface SocketLike {

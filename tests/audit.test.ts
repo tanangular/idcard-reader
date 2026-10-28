@@ -3,8 +3,8 @@ import { Database } from "bun:sqlite";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AuditLog, hashCitizenId } from "#server/audit.ts";
-import type { ReadOutcome } from "#server/state.ts";
+import { AuditLog, hashCitizenId } from "#server/audit";
+import type { ReadOutcome } from "#server/state";
 
 /** Synthetic 13-digit id; it appears nowhere on disk after a read. */
 const CID = "1101700203456";

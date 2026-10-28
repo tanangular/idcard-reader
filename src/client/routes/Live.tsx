@@ -3,11 +3,11 @@
  * no card data is fetched by the browser, and no state is invented here.
  */
 import { Match, Switch, createSignal } from "solid-js";
-import { CardView } from "#client/components/CardView.tsx";
-import { ErrorPanel } from "#client/components/ErrorPanel.tsx";
-import { StatusBar } from "#client/components/StatusBar.tsx";
-import { Timeline } from "#client/components/Timeline.tsx";
-import { getClient } from "#client/ws.ts";
+import { CardView } from "#client/components/CardView";
+import { ErrorPanel } from "#client/components/ErrorPanel";
+import { StatusBar } from "#client/components/StatusBar";
+import { Timeline } from "#client/components/Timeline";
+import { getClient } from "#client/ws";
 
 function ConnectingPanel() {
   return (

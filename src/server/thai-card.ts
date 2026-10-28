@@ -6,9 +6,9 @@
  * large and need the shorter length re-sent. Reads are capped at 0xFF bytes
  * because a 0x0100 request comes back as SW 6986.
  */
-import { PHOTO, parseCde, type CdeReader } from "./cde.ts";
-import { appError, decodeStatusWord, PcscError } from "./errors.ts";
-import type { ProgressStep, ThaiIdCard } from "#shared/protocol.ts";
+import { PHOTO, parseCde, type CdeReader } from "./cde";
+import { appError, decodeStatusWord, PcscError } from "./errors";
+import type { ProgressStep, ThaiIdCard } from "#shared/protocol";
 
 /** SELECT the Thai ID applet. */
 const SELECT_APPLET = new Uint8Array([

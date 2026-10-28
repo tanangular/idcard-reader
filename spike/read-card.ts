@@ -5,9 +5,9 @@
  * No field value is printed. Extend this script carefully: its output can
  * land in a terminal log or a bug report.
  */
-import { formatAtr, Pcsc } from "#server/pcsc.ts";
-import { readThaiIdCard } from "#server/thai-card.ts";
-import type { ProgressStep } from "#shared/protocol.ts";
+import { formatAtr, Pcsc } from "#server/pcsc";
+import { readThaiIdCard } from "#server/thai-card";
+import type { ProgressStep } from "#shared/protocol";
 
 const ok = (value: boolean) => (value ? "yes" : "no");
 const hasTh = (value: string) => /[\u0e00-\u0e7f]/.test(value);

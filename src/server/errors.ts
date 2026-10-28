@@ -1,4 +1,4 @@
-import type { AppError, AppErrorCode } from "#shared/protocol.ts";
+import type { AppError, AppErrorCode } from "#shared/protocol";
 
 /**
  * PC/SC return codes. Values are unsigned 32-bit; the framework hands them
