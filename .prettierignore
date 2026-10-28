@@ -1,0 +1,4 @@
+# oxfmt reads .prettierignore (it has no ignore file of its own).
+# PLAN.md is a spec written by hand; reformatting its tables changes the
+# meaning and adds noise to every diff.
+PLAN.md
