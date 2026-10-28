@@ -1,0 +1,7 @@
+node_modules/
+dist/
+data/
+.idea/
+.superpowers/
+*.log
+.DS_Store
