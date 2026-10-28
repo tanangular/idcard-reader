@@ -7,11 +7,6 @@ import koffi from "koffi";
 
 const pcsc = koffi.load("/System/Library/Frameworks/PCSC.framework/PCSC");
 
-const SCARD_IO_REQUEST = koffi.struct("SCARD_IO_REQUEST", {
-  dwProtocol: "uint32_t",
-  cbPciLength: "uint32_t",
-});
-
 const SCardEstablishContext = pcsc.func(
   "long SCardEstablishContext(uint32_t dwScope, void *pvReserved1, void *pvReserved2, _Out_ intptr_t *phContext)",
 );
@@ -122,8 +117,9 @@ if ((sw(res) & 0xff00) === 0x6100) {
   console.log(`  GET RESPONSE -> SW=${sw(res).toString(16).toUpperCase().padStart(4, "0")}`);
 }
 const cidLen = res.length - 2;
-console.log(`  CID bytes   = ${bhex(res.subarray(0, cidLen))}`);
-console.log(`  CID ascii   = ${res.subarray(0, cidLen).toString("ascii")}`);
+const cidIsDigits = /^\d{13}$/.test(res.subarray(0, cidLen).toString("ascii"));
+console.log(`  CID length  = ${cidLen}`);
+console.log(`  CID digits  = ${cidIsDigits}`);
 
 SCardDisconnect(hCard, SCARD_LEAVE_CARD);
 SCardReleaseContext(hContext);

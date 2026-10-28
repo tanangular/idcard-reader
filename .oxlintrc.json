@@ -10,7 +10,7 @@
     "node": true,
     "es2024": true
   },
-  "ignorePatterns": ["dist/**", "node_modules/**", "data/**", "spike/**"],
+  "ignorePatterns": ["dist/**", "node_modules/**", "data/**"],
   "rules": {
     "import/no-unassigned-import": "off"
   }

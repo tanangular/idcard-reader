@@ -1,7 +1,10 @@
 /**
  * Verifies the CDE offsets in src/server/cde.ts against the inserted card.
- * Prints structure and non-sensitive fields only: names are reduced to a
- * prefix plus a length, and the citizen id to its last two digits.
+ *
+ * Structural output only: lengths, format validity and script checks. The
+ * script never prints a field value — no citizen id, name, date, issuer or
+ * address. If you extend it, keep it that way: this file runs against a real
+ * card and its output can end up in a terminal log or a bug report.
  */
 import { CDE, parseCde } from "../src/server/cde.ts";
 import { formatAtr, Pcsc } from "../src/server/pcsc.ts";
@@ -11,6 +14,8 @@ const SELECT = new Uint8Array([
 ]);
 
 const pcsc = new Pcsc();
+
+const ok = (value: boolean) => (value ? "yes" : "no");
 
 function apdu(handle: bigint, bytes: Uint8Array): Uint8Array {
   let res = pcsc.transmit(handle, bytes);
@@ -57,27 +62,44 @@ try {
 
   const card = parseCde((offset, length) => read(handle, offset, length));
 
-  const mask = (s: string) =>
-    s.length <= 2 ? "*".repeat(s.length) : "*".repeat(s.length - 2) + s.slice(-2);
-  const shape = (s: string) => `${s.length} chars, all-thai-prefix=${/^[\u0e00-\u0e7f]/.test(s)}`;
+  const THAI = /^[\u0e00-\u0e7f]/;
+  const DATE = /^\d{4}-\d{2}-\d{2}$/;
+  const KNOWN_PREFIXES = new Set(["นาย", "นาง", "นางสาว", "Mr.", "Mrs.", "Miss"]);
+  const shape = (s: string) => `${s.length} chars, thai=${ok(THAI.test(s))}`;
 
+  // Every value printed below is a length or a boolean: the console line
+  // never interpolates a field. tests/privacy.test.ts enforces that shape.
+  const cidLength = card.citizenId.length;
+  const cidIsDigits = /^\d{13}$/.test(card.citizenId);
+  const thPrefixKnown = KNOWN_PREFIXES.has(card.nameTh.prefix);
+  const thFirst = shape(card.nameTh.firstName);
+  const thMiddle = card.nameTh.middleName === null ? "none" : shape(card.nameTh.middleName);
+  const thLast = shape(card.nameTh.lastName);
+  const en = card.nameEn;
+  const enSummary =
+    en === null
+      ? "absent"
+      : `prefixKnown=${ok(KNOWN_PREFIXES.has(en.prefix))} first=${shape(en.firstName)} last=${shape(en.lastName)}`;
+  const dobValid = DATE.test(card.dateOfBirth);
+  const sexKnown = card.sex !== "unknown";
+  const issuerLength = card.issuer.length;
+  const issuerIsThai = THAI.test(card.issuer);
+  const issueValid = DATE.test(card.issueDate);
+  const expireValid = DATE.test(card.expireDate);
+  const addressLength = card.address.length;
+  const addressIsThai = THAI.test(card.address);
+
+  console.log(`\ncitizenId  : length=${cidLength}, digits13=${ok(cidIsDigits)}`);
   console.log(
-    `\ncitizenId  : ${mask(card.citizenId)} (13 digits: ${/^\d{13}$/.test(card.citizenId)})`,
+    `nameTh     : prefixKnown=${ok(thPrefixKnown)} first=${thFirst} middle=${thMiddle} last=${thLast}`,
   );
-  console.log(
-    `nameTh     : prefix="${card.nameTh.prefix}" ${shape(card.nameTh.firstName)}, middle=${card.nameTh.middleName === null ? "none" : shape(card.nameTh.middleName)}, last=${shape(card.nameTh.lastName)}`,
-  );
-  console.log(
-    `nameEn     : ${card.nameEn === null ? "absent" : `prefix="${card.nameEn.prefix}" first=${shape(card.nameEn.firstName)} last=${shape(card.nameEn.lastName)}`}`,
-  );
-  console.log(`dateOfBirth: ${card.dateOfBirth}`);
-  console.log(`sex        : ${card.sex}`);
-  console.log(`issuer     : ${card.issuer}`);
-  console.log(`issueDate  : ${card.issueDate}`);
-  console.log(`expireDate : ${card.expireDate}`);
-  console.log(
-    `address    : ${card.address.length} chars, starts with thai=${/^[\u0e00-\u0e7f0-9]/.test(card.address)}`,
-  );
+  console.log(`nameEn     : ${enSummary}`);
+  console.log(`dateOfBirth: formatValid=${ok(dobValid)}`);
+  console.log(`sex        : known=${ok(sexKnown)}`);
+  console.log(`issuer     : length=${issuerLength}, thai=${ok(issuerIsThai)}`);
+  console.log(`issueDate  : formatValid=${ok(issueValid)}`);
+  console.log(`expireDate : formatValid=${ok(expireValid)}`);
+  console.log(`address    : ${addressLength} chars, thai=${ok(addressIsThai)}`);
 
   // Raw field sizing: how many bytes are actually used before padding.
   const used = (offset: number, length: number) => {
